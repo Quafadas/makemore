@@ -1,0 +1,63 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "A heat map with each cell displaying its first and second category labels along with the value.",
+  "data": {
+    "values": [
+      { "first": "A", "second": "X", "value": 10 },
+      { "first": "A", "second": "Y", "value": 20 },
+      { "first": "A", "second": "Z", "value": 30 },
+      { "first": "B", "second": "X", "value": 15 },
+      { "first": "B", "second": "Y", "value": 25 },
+      { "first": "B", "second": "Z", "value": 35 },
+      { "first": "C", "second": "X", "value": 20 },
+      { "first": "C", "second": "Y", "value": 30 },
+      { "first": "C", "second": "Z", "value": 40 }
+    ]
+  },
+  "transform": [
+    {
+      "calculate": "datum.first + ', ' + datum.second + ':::' + datum.value",
+      "as": "cellLabel"
+    }
+  ],
+  "layer": [
+    {
+      "mark": "rect",
+      "encoding": {
+        "x": {
+          "field": "first",
+          "type": "nominal",
+          "axis": { "title": "First letter" }
+        },
+        "y": {
+          "field": "second",
+          "type": "nominal",
+          "axis": { "title": "Second letter" }
+        },
+        "color": {
+          "field": "value",
+          "type": "quantitative",
+          "scale": {
+            "range": ["white", "steelblue"]
+          },
+          "legend": { "title": "Value" }
+        }
+      }
+    },
+    {
+      "mark": {
+        "type": "text",
+        "color": "black",
+        "fontSize": 12,
+        "align": "center",
+        "baseline": "middle",
+        "lineBreak": ":::"
+      },
+      "encoding": {
+        "x": { "field": "first", "type": "nominal" },
+        "y": { "field": "second", "type": "nominal" },
+        "text": { "field": "cellLabel", "type": "nominal" }
+      }
+    }
+  ]
+}
