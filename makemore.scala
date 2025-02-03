@@ -21,7 +21,7 @@ import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
 // import scala.NamedTuple.*
 import vecxt.all.*
 import viz.NamedTupleReadWriter.given
-import viz.PlotTargets.desktopBrowser
+import viz.PlotTargets.doNothing
 import viz.FromResource
 import viz.PlotTarget
 // import vecxt.*
@@ -54,18 +54,21 @@ def heatmap(data: Seq[(String, Int)])(using PlotTarget) =
 
 @main def makemore(): Unit =
 
+  val smooth = true
+
   def data = CSV.resource("names.txt")
   def bookended = data
     .addColumn["Bookend", String](s => s".${s.name}.")
     .addColumn["Pairs", Seq[String]](s => s.Bookend.sliding(2).toSeq)
 
   val chars = '.' +: ('a' to 'z').toVector
+  val charsIdx = chars.zipWithIndex.toMap
   val combinations = for {
     a <- chars
     b <- chars
   } yield s"$a$b"
 
-  val pairs = bookended.toVector
+  val pairSet = bookended.toVector
     .flatMap(_.Pairs.toSeq)
     .groupBy(identity)
     .mapValues(_.size)
@@ -132,5 +135,35 @@ def heatmap(data: Seq[(String, Int)])(using PlotTarget) =
   }
 
   val mat = Matrix.fromRows(raw)
+
+  val probs = for ((s, idx) <- completePairs) yield {
+    val l1 = s.head
+    val l2 = s.last
+    Math.log(normalised(l1).probability(charsIdx((l2))))
+  }
+
+  def rawVals: Iterator[String] = bookended.column["Pairs"].flatten
+
+  val logLikelihood =
+    rawVals.foldLeft((0.0, 0.0, 0)) { case ((sum, avg, count), s) =>
+      val l1 = s.head
+      val l2 = s.last
+      val prob = normalised(l1).probability(charsIdx(l2))
+
+      // println(s"$s $prob ${Math.log(prob)} ")
+
+      val logProb = Math.log(prob)
+      val newSum = sum + logProb
+      val newCount = count + 1
+      (newSum, (newSum / newCount), newCount)
+
+    }
+
+  println("-ve likelihood")
+  println(logLikelihood)
+
+  println(
+    "---- This is the bayesian pure scala bigram model, apparently, it's not great! Smoothing left as an excercise for the reader -----"
+  )
 
   // mat(::, *)
