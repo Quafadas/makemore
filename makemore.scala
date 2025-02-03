@@ -54,15 +54,20 @@ def heatmap(data: Seq[(String, Int)])(using PlotTarget) =
 
 @main def makemore(): Unit =
 
+  val normalDist =
+    new org.apache.commons.math3.distribution.NormalDistribution()
+
   val smooth = true
+
+  val chars = '.' +: ('a' to 'z').toVector
+  val charsIdx = chars.zipWithIndex.toMap
 
   def data = CSV.resource("names.txt")
   def bookended = data
     .addColumn["Bookend", String](s => s".${s.name}.")
     .addColumn["Pairs", Seq[String]](s => s.Bookend.sliding(2).toSeq)
+    .addColumn["Ints", Seq[Int]](s => s.Bookend.map(charsIdx))
 
-  val chars = '.' +: ('a' to 'z').toVector
-  val charsIdx = chars.zipWithIndex.toMap
   val combinations = for {
     a <- chars
     b <- chars
@@ -75,7 +80,9 @@ def heatmap(data: Seq[(String, Int)])(using PlotTarget) =
 
   val missing = combinations.toSet.diff(pairSet.keys.toSet)
 
-  val completePairs = (pairSet ++ missing.map(_ -> 0)).toSeq
+  val completePairs = (pairSet ++ missing.map(_ -> 0)).toSeq.map {
+    case (k, v) => if (smooth) (k, v + 1) else (k, v)
+  }
 
   println("Check raw data processing")
   bookended.take(5).toVector.ptbln
@@ -144,8 +151,8 @@ def heatmap(data: Seq[(String, Int)])(using PlotTarget) =
 
   def rawVals: Iterator[String] = bookended.column["Pairs"].flatten
 
-  val logLikelihood =
-    rawVals.foldLeft((0.0, 0.0, 0)) { case ((sum, avg, count), s) =>
+  def logLikelihood(strings: Iterator[String]) =
+    strings.foldLeft((0.0, 0.0, 0)) { case ((sum, avg, count), s) =>
       val l1 = s.head
       val l2 = s.last
       val prob = normalised(l1).probability(charsIdx(l2))
@@ -160,10 +167,19 @@ def heatmap(data: Seq[(String, Int)])(using PlotTarget) =
     }
 
   println("-ve likelihood")
-  println(logLikelihood)
+  println(logLikelihood(rawVals))
+
+  println("check likehood of likelihood")
+  val checkWord = "simon"
+  println(s"scheckword : $checkWord " + logLikelihood(".simon.".sliding(2)))
 
   println(
-    "---- This is the bayesian pure scala bigram model, apparently, it's not great! Smoothing left as an excercise for the reader -----"
+    "---- This is the bayesian pure scala bigram model, apparently, it's not great! -----"
   )
+  println("Change lange to neural network")
+
+  val randn = Matrix(Array.fill(27 * 27)(normalDist.sample()), (27, 27))
+
+  println(randn.printMat)
 
   // mat(::, *)
