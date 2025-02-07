@@ -169,7 +169,7 @@ def heatmap(data: Seq[(String, Int)])(using PlotTarget) =
   println("-ve likelihood")
   println(logLikelihood(rawVals))
 
-  println("check likehood of likelihood")
+  println("check likehood of word")
   val checkWord = "simon"
   println(s"scheckword : $checkWord " + logLikelihood(".simon.".sliding(2)))
 
