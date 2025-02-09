@@ -21,6 +21,46 @@ import spire.algebra.NRoot
 
 class TejSuite extends FunSuite {
 
+  test("jet addition") {
+    given jd: JetDim = JetDim(2)
+    val x = Jet(1.0) + Jet.h[Double](0)
+    val y = Jet(1.0) + Jet.h[Double](1)
+    val result = x + y
+    assertEquals(result, Jet(2.0, Array(1.0, 1.0)))
+
+  }
+
+  test("jet multiplication") {
+    given jd: JetDim = JetDim(2)
+    val x = Jet(1.0) + Jet.h[Double](0)
+    val y = Jet(1.0) + Jet.h[Double](1)
+    val result = x * y
+    assertEquals(result, Jet(1.0, Array(1.0, 1.0)))
+  }
+
+  test("jet equality") {
+    given jd: JetDim = JetDim(2)
+    val x = Jet(1.0)
+    val y = Jet(1.0)
+    assertEquals(x, y)
+  }
+
+  /** This is essentially the "forward" mode of automatic differentiation.
+    */
+
+  test("jet function composition") {
+    given jd: JetDim = JetDim(2)
+    val x = Jet(1.0) + Jet.h[Double](0)
+    val y = Jet(1.0) + Jet.h[Double](1)
+    val result = x * y
+
+    def messy[T: Field: Trig](x: T, y: T): T = x * x + exp(y)
+
+    val messyResult = messy(x, y)
+
+    assertEquals(messyResult, Jet(1.0 + exp(1), Array(2, exp(1))))
+  }
+
   test("Tej addition") {
     given jd: TejDim = TejDim(2)
     val x: Tej[Double] = 1.0 + Tej.h[Double](0)
@@ -38,8 +78,9 @@ class TejSuite extends FunSuite {
   }
 
   test("Tej equality") {
-    val x = Tej(1.0, Array(0.0))
-    val y = Tej(1.0, Array(0.0))
+    given jd: TejDim = TejDim(2)
+    val x = Tej(1.0)
+    val y = Tej(1.0)
     assertEquals(x, y)
   }
 
