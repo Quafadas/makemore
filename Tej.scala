@@ -1,3 +1,18 @@
+/*
+ * **********************************************************************\
+ * * Project                                                              **
+ * *       ______  ______   __    ______    ____                          **
+ * *      / ____/ / __  /  / /   / __  /   / __/     (c) 2011-2021        **
+ * *     / /__   / /_/ /  / /   / /_/ /   / /_                            **
+ * *    /___  / / ____/  / /   / __  /   / __/   Erik Osheim, Tom Switzer **
+ * *   ____/ / / /      / /   / / | |   / /__                             **
+ * *  /_____/ /_/      /_/   /_/  |_|  /____/     All rights reserved.    **
+ * *                                                                      **
+ * *      Redistribution and use permitted under the MIT license.         **
+ * *                                                                      **
+ * \***********************************************************************
+ */
+
 import scala.math._
 import scala.reflect._
 import spire.algebra._
@@ -5,77 +20,16 @@ import spire.std.ArraySupport
 import spire.syntax.isReal._
 import spire.syntax.nroot._
 import spire.syntax.vectorSpace._
+
 import scala.specialized as sp
-import vecxt.all.*
-import vecxt.BoundsCheck.DoBoundsCheck.no
 
 /** Used to implicitly define the dimensionality of the Tej space.
   * @param dimension
   *   the number of dimensions.
   */
-
-inline def anyIsZero(n: Any): Boolean =
-  n match {
-    case x if x == 0                => true
-    case c: ScalaNumericConversions => c.isValidInt && c.toInt == 0
-    case _                          => false
-  }
-
-inline def anyToDouble(n: Any): Double =
-  n match {
-    case n: Byte                    => n.toDouble
-    case n: Short                   => n.toDouble
-    case n: Char                    => n.toDouble
-    case n: Int                     => n.toDouble
-    case n: Long                    => n.toDouble
-    case n: Float                   => n.toDouble
-    case n: Double                  => n
-    case c: ScalaNumericConversions => c.toDouble
-    case _ =>
-      throw new UnsupportedOperationException(s"$n is not a ScalaNumber")
-  }
-
-inline def anyToLong(n: Any): Long =
-  n match {
-    case n: Byte                    => n.toLong
-    case n: Short                   => n.toLong
-    case n: Char                    => n.toLong
-    case n: Int                     => n.toLong
-    case n: Long                    => n
-    case n: Float                   => n.toLong
-    case n: Double                  => n.toLong
-    case c: ScalaNumericConversions => c.toLong
-    case _ =>
-      throw new UnsupportedOperationException(s"$n is not a ScalaNumber")
-  }
-
-inline def anyIsWhole(n: Any): Boolean =
-  n match {
-    case _: Byte                    => true
-    case _: Short                   => true
-    case _: Char                    => true
-    case _: Int                     => true
-    case _: Long                    => true
-    case n: Float                   => n.isWhole
-    case n: Double                  => n.isWhole
-    case c: ScalaNumericConversions => c.isWhole
-    case _ =>
-      throw new UnsupportedOperationException(s"$n is not a ScalaNumber")
-  }
-
-inline def anyIsValidInt(n: Any): Boolean =
-  n match {
-    case _: Byte                    => true
-    case _: Short                   => true
-    case _: Char                    => true
-    case _: Int                     => true
-    case n: Long                    => n.isValidInt
-    case n: Float                   => n.isValidInt
-    case n: Double                  => n.isValidInt
-    case c: ScalaNumericConversions => c.isValidInt
-    case _ =>
-      throw new UnsupportedOperationException(s"$n is not a ScalaNumber")
-  }
+case class TejDim(dimension: Int) {
+  require(dimension > 0)
+}
 
 // scalastyle:off regex
 /** ==Overview==
@@ -202,20 +156,7 @@ inline def anyIsValidInt(n: Any): Boolean =
   * time evaluate mathematical functions and compute their derivatives through
   * automatic differentiation.
   */
-
-extension (t: Tej[Array[Double]])
-  def show = {
-    val real = t.real.mkString("(", ", ", ")")
-    val infinitesimal = t.infinitesimal.printMat
-
-    println(s"Tej($real, ${infinitesimal})")
-  }
-
-case class TejDim(dimension: Int) {
-  require(dimension > 0)
-}
-
-object Tej extends TejInstance {
+object Tej extends TejInstances {
   // No-arg c.tor makes a zero Tej
   def apply[@sp(Float, Double) T](implicit
       c: ClassTag[T],
@@ -227,18 +168,24 @@ object Tej extends TejInstance {
   def apply[@sp(Float, Double) T](
       real: T
   )(implicit c: ClassTag[T], d: TejDim, s: Semiring[T]): Tej[T] =
-    new Tej(real, Matrix.eye[T](d.dimension))
+    new Tej(real, Array.fill[T](d.dimension)(s.zero))
 
-  // // From real, to compute k-th partial derivative.
-  // def apply[@sp(Float, Double) T](a: T, k: Int)(implicit
-  //     c: ClassTag[T],
-  //     d: TejDim,
-  //     r: Rig[T]
-  // ): Tej[T] = {
-  //   val v = Array.fill[T](d.dimension)(r.zero)
-  //   v(k) = r.one
-  //   new Tej(a, v)
-  // }
+  // From real, to compute k-th partial derivative.
+  def apply[@sp(Float, Double) T](a: T, k: Int)(implicit
+      c: ClassTag[T],
+      d: TejDim,
+      r: Rig[T]
+  ): Tej[T] = {
+    val v = Array.fill[T](d.dimension)(r.zero)
+    v(k) = r.one
+    new Tej(a, v)
+  }
+
+  // Zero real, indicator for k-th partial derivative.
+  def h[@sp(Float, Double) T](
+      k: Int
+  )(implicit c: ClassTag[T], d: TejDim, r: Rig[T]): Tej[T] =
+    Tej(r.zero, k)
 
   def one[@sp(Float, Double) T](implicit
       c: ClassTag[T],
@@ -266,11 +213,11 @@ object Tej extends TejInstance {
   }
 
   implicit def floatToTej(n: Float)(implicit d: TejDim): Tej[Float] = {
-    new Tej(n.toFloat, Matrix.eye[Float](d.dimension))
+    new Tej(n.toFloat, Array.fill[Float](d.dimension)(0.0f))
   }
 
   implicit def doubleToTej(n: Double)(implicit d: TejDim): Tej[Double] = {
-    new Tej(n, Matrix.eye[Double](d.dimension))
+    new Tej(n, Array.fill[Double](d.dimension)(0.0))
   }
 
   implicit def bigIntToTej(n: BigInt)(implicit d: TejDim): Tej[BigDecimal] = {
@@ -280,81 +227,59 @@ object Tej extends TejInstance {
   implicit def bigDecimalToTej(
       n: BigDecimal
   )(implicit d: TejDim): Tej[BigDecimal] = {
-    new Tej(n, Matrix.eye[BigDecimal](d.dimension))
+    new Tej(n, Array.fill[BigDecimal](d.dimension)(0.0))
   }
 }
 
 @SerialVersionUID(0L)
-final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Matrix[T])
+final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
     extends ScalaNumber
     with ScalaNumericConversions
     with Serializable { lhs =>
 
   import spire.syntax.order._
 
-  def dimension: Int = infinitesimal.rows.toInt
-  def matDim = (dimension, dimension)
+  def dimension: Int = infinitesimal.size
   implicit def TejDimension: TejDim = TejDim(dimension)
 
   /** This is consistent with abs
     */
   def signum(implicit r: Signed[T]): Int = real.signum
 
-  def asTuple: (T, Matrix[T]) = (real, infinitesimal)
+  def asTuple: (T, Array[T]) = (real, infinitesimal)
 
-  def isReal: Boolean = infinitesimal.raw.forall(anyIsZero)
+  def isReal: Boolean = infinitesimal.forall(anyIsZero)
   def isZero: Boolean = anyIsZero(real) && isReal
   def isInfinitesimal: Boolean = anyIsZero(real) && !isReal
 
   def eqv(b: Tej[T])(implicit o: Eq[T]): Boolean = {
-    real === b.real && ArraySupport.eqv(infinitesimal.raw, b.infinitesimal.raw)
+    real === b.real && ArraySupport.eqv(infinitesimal, b.infinitesimal)
   }
   def neqv(b: Tej[T])(implicit o: Eq[T]): Boolean = {
     !this.eqv(b)
   }
 
-  def unary_-(implicit
-      f: Field[T],
-      ct: ClassTag[T],
-      v: VectorSpace[Array[T], T]
-  ): Tej[T] = {
-    new Tej(
-      -real,
-      Matrix(infinitesimal.raw.map(-_), (dimension, dimension))
-    )
+  def unary_-(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
+    new Tej(-real, -infinitesimal)
   }
 
   def +(b: T)(implicit f: Field[T]): Tej[T] = new Tej(real + b, infinitesimal)
   def -(b: T)(implicit f: Field[T]): Tej[T] = new Tej(real - b, infinitesimal)
-  def *(b: T)(implicit
-      f: Field[T],
-      ct: ClassTag[T],
-      v: VectorSpace[Array[T], T]
-  ): Tej[T] = {
-    new Tej(real * b, Matrix(infinitesimal.raw.map(_ * b), matDim))
+  def *(b: T)(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
+    new Tej(real * b, infinitesimal :* b)
   }
-  def /(b: T)(implicit
-      f: Field[T],
-      ct: ClassTag[T],
-      v: VectorSpace[Array[T], T]
-  ): Tej[T] = {
-    new Tej(real / b, Matrix(infinitesimal.raw.map(_ / b), matDim))
+  def /(b: T)(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
+    new Tej(real / b, infinitesimal :/ b)
   }
   def +(
       b: Tej[T]
   )(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(
-      real + b.real,
-      Matrix(infinitesimal.raw + b.infinitesimal.raw, matDim)
-    )
+    new Tej(real + b.real, infinitesimal + b.infinitesimal)
   }
   def -(
       b: Tej[T]
   )(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(
-      real - b.real,
-      Matrix(infinitesimal.raw - b.infinitesimal.raw, matDim)
-    )
+    new Tej(real - b.real, infinitesimal - b.infinitesimal)
   }
   // Multiplication rule for differentials:
   //
@@ -392,7 +317,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Matrix[T])
       v: VectorSpace[Array[T], T]
   ): Tej[T] = {
     val q = this / b
-    new Tej[T](q.real.floor, Matrix(q.infinitesimal.raw.map(r.floor), matDim))
+    new Tej[T](q.real.floor, q.infinitesimal.map(r.floor))
   }
 
   def %(b: Tej[T])(implicit
@@ -445,15 +370,15 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Matrix[T])
   }
 
   def floor(implicit c: ClassTag[T], r: IsReal[T]): Tej[T] = {
-    new Tej(real.floor, Matrix(infinitesimal.raw.map(r.floor), matDim))
+    new Tej(real.floor, infinitesimal.map(r.floor))
   }
 
   def ceil(implicit c: ClassTag[T], r: IsReal[T]): Tej[T] = {
-    new Tej(real.ceil, Matrix(infinitesimal.raw.map(r.ceil), matDim))
+    new Tej(real.ceil, infinitesimal.map(r.ceil))
   }
 
   def round(implicit c: ClassTag[T], r: IsReal[T]): Tej[T] = {
-    new Tej(real.round, Matrix(infinitesimal.raw.map(r.round), matDim))
+    new Tej(real.round, infinitesimal.map(r.round))
   }
 
   // Elementary math functions
@@ -698,7 +623,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Matrix[T])
   // Object stuff
   override def hashCode: Int = {
     if (isReal) real.##
-    else 13 * real.## + infinitesimal.raw.foldLeft(53)((x, y) => x + y.## * 19)
+    else 13 * real.## + infinitesimal.foldLeft(53)((x, y) => x + y.## * 19)
   }
 
   override def equals(that: Any): Boolean = that match {
@@ -706,21 +631,19 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Matrix[T])
     case that         => isReal && real == that
   }
 
-  def ===(that: Tej[?]): Boolean =
+  def ===(that: Tej[_]): Boolean =
     real == that.real && dimension == that.dimension &&
-      infinitesimal.raw.zip(that.infinitesimal.raw).forall { case (x, y) =>
-        x == y
-      }
+      infinitesimal.zip(that.infinitesimal).forall { case (x, y) => x == y }
 
-  def =!=(that: Tej[?]): Boolean =
+  def =!=(that: Tej[_]): Boolean =
     !(this === that)
 
   override def toString: String = {
-    "(%s + [%s]h)".format(real.toString, infinitesimal.toString())
+    "(%s + [%s]h)".format(real.toString, infinitesimal.mkString(", "))
   }
 }
 
-trait TejInstance {
+trait TejInstances {
   implicit def TejAlgebra[@sp(Float, Double) T](implicit
       c: ClassTag[T],
       d: TejDim,
@@ -879,12 +802,11 @@ class TejAlgebra[@sp(Float, Double) T](implicit
   def scalar: Field[T] = f
   def nroot: NRoot[T] = n
   def timesl(a: T, w: Tej[T]): Tej[T] = Tej(a) * w
-  def dot(x: Tej[T], y: Tej[T]): T = ???
-  // {
-  //   x.infinitesimal
-  //     .zip(y.infinitesimal)
-  //     .foldLeft { scalar.times(x.real, y.real) } { (xx, yy) =>
-  //       scalar.plus(xx, scalar.times(yy._1, yy._2))
-  //     }
-  // }
+  def dot(x: Tej[T], y: Tej[T]): T = {
+    x.infinitesimal
+      .zip(y.infinitesimal)
+      .foldLeft { scalar.times(x.real, y.real) } { (xx, yy) =>
+        scalar.plus(xx, scalar.times(yy._1, yy._2))
+      }
+  }
 }
