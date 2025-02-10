@@ -1,4 +1,3 @@
-//> using dep org.typelevel::spire::0.18.0
 
 import spire._
 import spire.math._

@@ -1,4 +1,4 @@
-//> using dep org.scalameta::munit::1.1.0
+
 
 import munit._
 import spire._
@@ -18,8 +18,14 @@ import vecxt.all.*
 import vecxt.BoundsCheck.DoBoundsCheck.yes
 import spire.algebra.VectorSpace
 import spire.algebra.NRoot
+import cats.kernel.Eq
 
 class TejSuite extends FunSuite {
+
+  def assertEqualsTejToJet[T: Eq](t: Tej[T], j: Jet[T]) = 
+    assertEquals(t.j.real, j.real)
+    for (i, ji) <- t.j.infinitesimal.zip(j.infinitesimal) do
+      assertEquals(i, ji)
 
   test("jet addition") {
     given jd: JetDim = JetDim(2)
@@ -88,6 +94,15 @@ class TejSuite extends FunSuite {
     given jd: TejDim = TejDim(2)
     val zero = Tej.zero[Double]
     assertEquals(zero, Tej(0.0, Array(0.0, 0.0)))
+  }
+
+  test("sin") {
+    given td: TejDim = TejDim(1)
+    given jd: JetDim = td.jd
+    val xT = Tej(1.0)
+    val xJ = Jet(1.0)
+    def sinT[T: Trig](t: T) = sin(t)
+    assertEqualsTejToJet( sinT(xT), sinT(xJ) )
   }
 
 }
