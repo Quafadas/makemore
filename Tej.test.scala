@@ -105,4 +105,28 @@ class TejSuite extends FunSuite {
     assertEqualsTejToJet( sinT(xT), sinT(xJ) )
   }
 
+  test("Tej constructor doesn't compile through Jet"){
+    given td : TejDim = TejDim(1)
+    given jd :JetDim = td.jd
+    val x = Tej(Jet(1.0))
+  }
+
+  test("construct digraph"){
+    given td : TejDim = TejDim(2)
+
+    val t1 = Tej(1.0) + Tej.h[Double](0)
+    val t2 = Tej(2.0) + Tej.h[Double](1)
+    
+    def sq[T: Field: Trig](x: T): T = x * x
+    
+    def ttim[T: Field: Trig](x: T, y: T): T = x * y
+
+    val ttimImpl = ttim(t1, t2)
+
+    println(ttimImpl)
+    println(td.dag.toGraphviz)
+
+  }
+
+
 }
