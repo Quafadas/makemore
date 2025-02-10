@@ -9,7 +9,7 @@ I decided, that I wanted to follow this tutorial, on building a simple bigram in
 
 ## Introduction
 
-Starts out pretty simple. Read data, make histograms, calculate probabilities. Then it swtiches up a gear into training a basic neural network. So you're kind of cruising along, and then we hit automatic differentiation. Firstly, forward differentiation. I kind of get how that works. Then suddently, BOOM.
+Starts out pretty simple. Read data, make histograms, calculate probabilities. Then it swtiches up a gear into training a basic neural network. So you're kind of cruising along, and then we hit automatic differentiation. Firstly, forward differentiation. I kind of get how that works. Then suddenly, BOOM.
 
 ```python
 loss.backward()
@@ -25,7 +25,7 @@ My research into it tweaked my curiosity. I ended up fascinated from both a Math
 
 As this sits right at the intersection of things I'm curious about we're not gonna eject into Torch. We're gonna build it in Scala on the JVM. Grug say stupid stupid stupid, but hey, It's been done before...
 
-Please note: it is _implausible_ that the outcome will be "production grade". I'm beginning to suspect that a production grade implementation of this is a FAANG hard problem. Sadly, that's not me.
+Please note: it is _implausible_ that the outcome will be "production grade", and that is a non-goal. I'm beginning to suspect that a production grade implementation of this is a FAANG hard problem. Sadly, that's not me.
 
 ## Research
 
@@ -98,8 +98,15 @@ Then the partial derivative of f with respect to x is $2x$, and with respect to 
 
 Which (assuming you remember your calculus) is the correct result. Crucially, it tells us that we gain "forward mode AD" from Spire, straight out the box. Pretty sweet...
 
-### Jet Addition
+## Design
 
-This sentence uses `$` delimiters to show math inline: $\sqrt{3x-1}+(1+x)^2$
+One of the particulaly attractive parts about building on top of Spire, is that some prior genius already set out `Duel` (or `Jet`) derivatives of common operations. So we don't need to break out the math textbooks and figure out the chain rule for `sin` for example. We get that free and battle tested. Further, Spire's design seems quite amenable to extension. 
+
+At a high level our plan will be to "compose" a `Jet` into a new construct let's call it a `Tej` (backwards jet, see what I did there???). Our `Tej` will delegate math to `Jet`, but record the directed graph of calculations, enabling (we hope) a reverse AD mode. Conretely, 
+
+```scala
+case class Tej(j: Jet) 
+```
+If this worked, it _might_ fit quite nicely into some other prior art, providing a smooth developer experience and clean useage at the call site, without requiring a large refactoring. Let's see what happens...
 
 

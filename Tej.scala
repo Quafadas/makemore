@@ -20,8 +20,9 @@ import spire.std.ArraySupport
 import spire.syntax.isReal._
 import spire.syntax.nroot._
 import spire.syntax.vectorSpace._
-
 import scala.specialized as sp
+import spire.math.Jet
+import spire.math.JetDim
 
 /** Used to implicitly define the dimensionality of the Tej space.
   * @param dimension
@@ -29,6 +30,8 @@ import scala.specialized as sp
   */
 case class TejDim(dimension: Int) {
   require(dimension > 0)
+  val jd = JetDim(dimension)
+
 }
 object Tej extends TejInstances {
   // No-arg c.tor makes a zero Tej
@@ -42,7 +45,7 @@ object Tej extends TejInstances {
   def apply[@sp(Float, Double) T](
       real: T
   )(implicit c: ClassTag[T], d: TejDim, s: Semiring[T]): Tej[T] =
-    new Tej(real, Array.fill[T](d.dimension)(s.zero))
+    new Tej(Jet(real, Array.fill[T](d.dimension)(s.zero)))(using d.jd)
 
   // From real, to compute k-th partial derivative.
   def apply[@sp(Float, Double) T](a: T, k: Int)(implicit
@@ -52,7 +55,16 @@ object Tej extends TejInstances {
   ): Tej[T] = {
     val v = Array.fill[T](d.dimension)(r.zero)
     v(k) = r.one
-    new Tej(a, v)
+    new Tej(Jet(a, v))(using d.jd)
+  }
+
+  // From real, to compute k-th partial derivative.
+  def apply[@sp(Float, Double) T](a: T, k: Array[T])(implicit
+      // c: ClassTag[T],
+      d: TejDim,
+      r: Rig[T]
+  ): Tej[T] = {    
+    Tej(Jet(a, k))(using d.jd)
   }
 
   // Zero real, indicator for k-th partial derivative.
@@ -87,11 +99,17 @@ object Tej extends TejInstances {
   }
 
   implicit def floatToTej(n: Float)(implicit d: TejDim): Tej[Float] = {
-    new Tej(n.toFloat, Array.fill[Float](d.dimension)(0.0f))
+    import spire.std.float.FloatAlgebra
+    given jd: JetDim = d.jd
+    Tej(
+      n.toFloat, Array.fill[Float](d.dimension)(0.0f)
+    )
   }
 
   implicit def doubleToTej(n: Double)(implicit d: TejDim): Tej[Double] = {
-    new Tej(n, Array.fill[Double](d.dimension)(0.0))
+    import spire.std.double.DoubleAlgebra
+    given jd: JetDim = d.jd
+    Tej(n, Array.fill[Double](d.dimension)(0.0))
   }
 
   implicit def bigIntToTej(n: BigInt)(implicit d: TejDim): Tej[BigDecimal] = {
@@ -101,24 +119,31 @@ object Tej extends TejInstances {
   implicit def bigDecimalToTej(
       n: BigDecimal
   )(implicit d: TejDim): Tej[BigDecimal] = {
-    new Tej(n, Array.fill[BigDecimal](d.dimension)(0.0))
+    import spire.std.bigDecimal.BigDecimalAlgebra
+    given jd: JetDim = d.jd
+    Tej(n, Array.fill[BigDecimal](d.dimension)(0.0))
   }
 }
 
 @SerialVersionUID(0L)
-final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
+final case class Tej[@sp(Float, Double) T](j : Jet[T])(using jd: JetDim)
     extends ScalaNumber
     with ScalaNumericConversions
     with Serializable { lhs =>
 
   import spire.syntax.order._
 
-  def dimension: Int = infinitesimal.size
+  def dimension: Int = j.infinitesimal.size
   implicit def TejDimension: TejDim = TejDim(dimension)
+  // given jd: JetDim = TejDimension.jd
+  // given ta: JetAlgebra[T] = ???
+
+  inline private def real = j.real
+  inline private def infinitesimal = j.infinitesimal
 
   /** This is consistent with abs
     */
-  def signum(implicit r: Signed[T]): Int = real.signum
+  def signum(implicit r: Signed[T]): Int = j.real.signum
 
   def asTuple: (T, Array[T]) = (real, infinitesimal)
 
@@ -134,26 +159,26 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
   }
 
   def unary_-(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(-real, -infinitesimal)
+    Tej(-real, -infinitesimal)
   }
 
-  def +(b: T)(implicit f: Field[T]): Tej[T] = new Tej(real + b, infinitesimal)
-  def -(b: T)(implicit f: Field[T]): Tej[T] = new Tej(real - b, infinitesimal)
+  def +(b: T)(implicit f: Field[T]): Tej[T] = Tej(real + b, infinitesimal)
+  def -(b: T)(implicit f: Field[T]): Tej[T] = Tej(real - b, infinitesimal)
   def *(b: T)(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(real * b, infinitesimal :* b)
+    Tej(real * b, infinitesimal :* b)
   }
   def /(b: T)(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(real / b, infinitesimal :/ b)
+    Tej(real / b, infinitesimal :/ b)
   }
   def +(
       b: Tej[T]
   )(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(real + b.real, infinitesimal + b.infinitesimal)
+    Tej(real + b.real, infinitesimal + b.infinitesimal)
   }
   def -(
       b: Tej[T]
   )(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(real - b.real, infinitesimal - b.infinitesimal)
+    Tej(real - b.real, infinitesimal - b.infinitesimal)
   }
   // Multiplication rule for differentials:
   //
@@ -163,7 +188,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
   def *(
       b: Tej[T]
   )(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(real * b.real, b.real *: infinitesimal + real *: b.infinitesimal)
+    Tej(Jet(real * b.real, b.real *: infinitesimal + real *: b.infinitesimal))
   }
 
   def /(
@@ -178,9 +203,11 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
     // which holds because dv dv = du dv = 0.
     val br_inv: T = f.one / b.real
     val ar_div_br: T = real * br_inv
-    new Tej(
-      ar_div_br,
-      br_inv *: (infinitesimal - (ar_div_br *: b.infinitesimal))
+    Tej( 
+      Jet(
+        ar_div_br,
+        br_inv *: (infinitesimal - (ar_div_br *: b.infinitesimal))
+      )
     )
   }
 
@@ -191,7 +218,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       v: VectorSpace[Array[T], T]
   ): Tej[T] = {
     val q = this / b
-    new Tej[T](q.real.floor, q.infinitesimal.map(r.floor))
+    Tej[T](Jet(q.real.floor, q.infinitesimal.map(r.floor)))
   }
 
   def %(b: Tej[T])(implicit
@@ -244,15 +271,15 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
   }
 
   def floor(implicit c: ClassTag[T], r: IsReal[T]): Tej[T] = {
-    new Tej(real.floor, infinitesimal.map(r.floor))
+    Tej(Jet(real.floor, infinitesimal.map(r.floor)))
   }
 
   def ceil(implicit c: ClassTag[T], r: IsReal[T]): Tej[T] = {
-    new Tej(real.ceil, infinitesimal.map(r.ceil))
+    Tej(Jet(real.ceil, infinitesimal.map(r.ceil)))
   }
 
   def round(implicit c: ClassTag[T], r: IsReal[T]): Tej[T] = {
-    new Tej(real.round, infinitesimal.map(r.round))
+    Tej(Jet(real.round, infinitesimal.map(r.round)))
   }
 
   // Elementary math functions
@@ -265,8 +292,12 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       o: Order[T],
       s: Signed[T],
       v: VectorSpace[Array[T], T]
-  ): Tej[T] = {
-    if (real < f.zero) new Tej(-real, -infinitesimal)
+  ): Tej[T] = {    
+    if (real < f.zero) Tej(
+      Jet(
+        -real, -infinitesimal
+        )        
+      )
     else this
   }
 
@@ -301,7 +332,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       Tej.one[T]
     } else {
       val tmp = powScalarToScalar(a, real)
-      new Tej(tmp, (spire.math.log(a) * tmp) *: infinitesimal)
+      Tej(Jet(tmp, (spire.math.log(a) * tmp) *: infinitesimal))
     }
   }
 
@@ -318,13 +349,13 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       v: VectorSpace[Array[T], T]
   ): Tej[T] = {
     val tmp: T = p * powScalarToScalar(real, p - f.one)
-    new Tej(powScalarToScalar(real, p), tmp *: infinitesimal)
+    Tej(Jet(powScalarToScalar(real, p), tmp *: infinitesimal))
   }
 
   // As above, integer exponent.
   def pow(p: Int)(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
     val tmp = p * f.pow(real, p - 1)
-    new Tej(f.pow(real, p), tmp *: infinitesimal)
+    Tej(Jet(f.pow(real, p), tmp *: infinitesimal))
   }
 
   /** pow -- both base (this) and exponent are differentiable functions.
@@ -348,7 +379,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       val tmp1 = powScalarToScalar(real, b.real)
       val tmp2 = b.real * powScalarToScalar(real, b.real - f.one)
       val tmp3 = tmp1 * spire.math.log(real)
-      new Tej(tmp1, (tmp2 *: infinitesimal) + (tmp3 *: b.infinitesimal))
+      Tej(Jet(tmp1, (tmp2 *: infinitesimal) + (tmp3 *: b.infinitesimal)))
     }
   }
 
@@ -359,7 +390,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       t: Trig[T],
       v: VectorSpace[Array[T], T]
   ): Tej[T] = {
-    new Tej(spire.math.log(real), (f.one / real) *: infinitesimal)
+    Tej(Jet(spire.math.log(real), (f.one / real) *: infinitesimal))
   }
 
   /** sqrt(a + du) ~= sqrt(a) + du / (2 sqrt(a))
@@ -371,7 +402,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
   ): Tej[T] = {
     val sa = real.sqrt
     val oneHalf = f.one / (f.one + f.one)
-    new Tej(sa, (oneHalf / sa) *: infinitesimal)
+    Tej(Jet(sa, (oneHalf / sa) *: infinitesimal))
   }
 
   /** acos(a + du) ~= acos(a) - 1 / sqrt(1 - a**2) du
@@ -383,7 +414,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       v: VectorSpace[Array[T], T]
   ): Tej[T] = {
     val tmp = -f.one / spire.math.sqrt(f.one - real * real)
-    new Tej(spire.math.acos(real), tmp *: infinitesimal)
+    Tej(Jet(spire.math.acos(real), tmp *: infinitesimal))
   }
 
   /** asin(a + du) ~= asin(a) - 1 / sqrt(1 - a**2) du
@@ -395,7 +426,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       v: VectorSpace[Array[T], T]
   ): Tej[T] = {
     val tmp = f.one / spire.math.sqrt(f.one - real * real)
-    new Tej(spire.math.asin(real), tmp *: infinitesimal)
+    Tej(Jet(spire.math.asin(real), tmp *: infinitesimal))
   }
 
   /** atan(a + du) ~= atan(a) + 1 / (1 + a**2) du
@@ -406,7 +437,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       v: VectorSpace[Array[T], T]
   ): Tej[T] = {
     val tmp = f.one / (f.one + real * real)
-    new Tej(spire.math.atan(real), tmp *: infinitesimal)
+    Tej(Jet(spire.math.atan(real), tmp *: infinitesimal))
   }
 
   /** Defined with "this" as the y coordinate:
@@ -418,9 +449,10 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       a: Tej[T]
   )(implicit f: Field[T], t: Trig[T], v: VectorSpace[Array[T], T]): Tej[T] = {
     val tmp = f.one / (a.real * a.real + real * real)
-    new Tej(
+    Tej(Jet(
       spire.math.atan2(real, a.real),
       ((tmp * (-real)) *: a.infinitesimal) + ((tmp * a.real) *: infinitesimal)
+    )
     )
   }
 
@@ -428,19 +460,19 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
     */
   def exp(implicit t: Trig[T], v: VectorSpace[Array[T], T]): Tej[T] = {
     val ea = spire.math.exp(real)
-    new Tej[T](ea, ea *: infinitesimal)
+    Tej(Jet[T](ea, ea *: infinitesimal))
   }
 
   /** sin(a + du) ~= sin(a) + cos(a) du
     */
   def sin(implicit t: Trig[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(spire.math.sin(real), spire.math.cos(real) *: infinitesimal)
+    Tej(Jet(spire.math.sin(real), spire.math.cos(real) *: infinitesimal))
   }
 
   /** sinh(a + du) ~= sinh(a) + cosh(a) du
     */
   def sinh(implicit t: Trig[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(spire.math.sinh(real), spire.math.cosh(real) *: infinitesimal)
+    Tej(Jet(spire.math.sinh(real), spire.math.cosh(real) *: infinitesimal))
   }
 
   /** cos(a + du) ~= cos(a) - sin(a) du
@@ -450,13 +482,13 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
       t: Trig[T],
       v: VectorSpace[Array[T], T]
   ): Tej[T] = {
-    new Tej(spire.math.cos(real), -spire.math.sin(real) *: infinitesimal)
+    Tej(Jet(spire.math.cos(real), -spire.math.sin(real) *: infinitesimal))
   }
 
   /** cosh(a + du) ~= cosh(a) + sinh(a) du
     */
   def cosh(implicit t: Trig[T], v: VectorSpace[Array[T], T]): Tej[T] = {
-    new Tej(spire.math.cosh(real), spire.math.sinh(real) *: infinitesimal)
+    Tej(Jet(spire.math.cosh(real), spire.math.sinh(real) *: infinitesimal))
   }
 
   /** tan(a + du) ~= tan(a) + (1 + tan(a)**2) du
@@ -468,7 +500,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
   ): Tej[T] = {
     val tan_a = spire.math.tan(real)
     val tmp = f.one + tan_a * tan_a
-    new Tej(tan_a, tmp *: infinitesimal)
+    Tej(Jet(tan_a, tmp *: infinitesimal))
   }
 
   /** tanh(a + du) ~= tanh(a) + (1 - tanh(a)**2) du
@@ -480,7 +512,7 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
   ): Tej[T] = {
     val tanh_a = spire.math.tanh(real)
     val tmp = f.one - tanh_a * tanh_a
-    new Tej(tanh_a, tmp *: infinitesimal)
+    Tej(Jet(tanh_a, tmp *: infinitesimal))
   }
 
   // Stuff needed by ScalaNumber
@@ -505,11 +537,11 @@ final case class Tej[@sp(Float, Double) T](real: T, infinitesimal: Array[T])
     case that         => isReal && real == that
   }
 
-  def ===(that: Tej[_]): Boolean =
+  def ===(that: Tej[?]): Boolean =
     real == that.real && dimension == that.dimension &&
       infinitesimal.zip(that.infinitesimal).forall { case (x, y) => x == y }
 
-  def =!=(that: Tej[_]): Boolean =
+  def =!=(that: Tej[?]): Boolean =
     !(this === that)
 
   override def toString: String = {
@@ -673,13 +705,13 @@ class TejAlgebra[@sp(Float, Double) T](implicit
     with VectorSpace[Tej[T], T]
     with FieldAssociativeAlgebra[Tej[T], T]
     with Serializable {
-  def scalar: Field[T] = f
-  def nroot: NRoot[T] = n
+  inline def scalar: Field[T] = f
+  inline def nroot: NRoot[T] = n
   def timesl(a: T, w: Tej[T]): Tej[T] = Tej(a) * w
   def dot(x: Tej[T], y: Tej[T]): T = {
-    x.infinitesimal
-      .zip(y.infinitesimal)
-      .foldLeft { scalar.times(x.real, y.real) } { (xx, yy) =>
+    x.j.infinitesimal
+      .zip(y.j.infinitesimal)
+      .foldLeft { scalar.times(x.j.real, y.j.real) } { (xx, yy) =>
         scalar.plus(xx, scalar.times(yy._1, yy._2))
       }
   }
