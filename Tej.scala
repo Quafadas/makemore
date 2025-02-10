@@ -285,27 +285,7 @@ final case class Tej[@sp(Float, Double) T](j : Jet[T])(using jd: JetDim)
       s: Signed[T],
       v: VectorSpace[Array[T], T]
   ): Tej[T] = {    
-    if (real < f.zero) Tej(
-      Jet(
-        -real, -infinitesimal
-        )        
-      )
-    else this
-  }
-
-  // spire.math. does not define this pow generically, so there it is
-  private def powScalarToScalar(
-      b: T,
-      e: T
-  )(implicit f: Field[T], o: Order[T], s: Signed[T], t: Trig[T]): T = {
-    if (e === f.zero) {
-      f.one
-    } else if (b === f.zero) {
-      if (e < f.zero) throw new Exception("raising 0 to a negative power")
-      else f.zero
-    } else {
-      spire.math.exp(e * spire.math.log(b))
-    }
+    Tej(j.abs)
   }
 
   // pow -- base is a constant, exponent (this) is a differentiable function.
@@ -320,12 +300,7 @@ final case class Tej[@sp(Float, Double) T](j : Jet[T])(using jd: JetDim)
       s: Signed[T],
       t: Trig[T]
   ): Tej[T] = {
-    if (isZero) {
-      Tej.one[T]
-    } else {
-      val tmp = powScalarToScalar(a, real)
-      Tej(Jet(tmp, (spire.math.log(a) * tmp) *: infinitesimal))
-    }
+    Tej(j.powScalarToJet(a))    
   }
 
   /** pow -- base (this) is a differentiable function, exponent is a constant.
@@ -339,15 +314,14 @@ final case class Tej[@sp(Float, Double) T](j : Jet[T])(using jd: JetDim)
       s: Signed[T],
       t: Trig[T],
       v: VectorSpace[Array[T], T]
-  ): Tej[T] = {
-    val tmp: T = p * powScalarToScalar(real, p - f.one)
-    Tej(Jet(powScalarToScalar(real, p), tmp *: infinitesimal))
+  ): Tej[T] = {    
+    Tej(j.pow(p))
   }
 
   // As above, integer exponent.
   def pow(p: Int)(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
     val tmp = p * f.pow(real, p - 1)
-    Tej(Jet(f.pow(real, p), tmp *: infinitesimal))
+    Tej(j.pow(p))
   }
 
   /** pow -- both base (this) and exponent are differentiable functions.
