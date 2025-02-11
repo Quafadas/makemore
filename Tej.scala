@@ -9,6 +9,9 @@ import scala.specialized as sp
 import spire.math.Jet
 import spire.math.JetDim
 
+enum AdMode:
+  case Forward, Reverse
+
 /** Used to implicitly define the dimensionality of the Tej space.
   * @param dimension
   *   the number of dimensions.
@@ -17,12 +20,13 @@ case class TejDim(dimension: Int) {
   require(dimension > 0)
   val jd = JetDim(dimension)
   val dag = DAG()
+  final val mode = AdMode.Forward
 }
 object Tej extends TejInstances {
   // No-arg c.tor makes a zero Tej
-  def apply[@sp(Float, Double) T](implicit
+  inline def apply[@sp(Float, Double) T](implicit
       c: ClassTag[T],
-      d: TejDim,
+      inline d: TejDim,
       s: Semiring[T]
   ): Tej[T] =
     val tmp = Tej(s.zero)
@@ -30,18 +34,18 @@ object Tej extends TejInstances {
     tmp
 
   // From real.
-  def apply[@sp(Float, Double) T](
+  inline def apply[@sp(Float, Double) T](
       real: T
-  )(implicit c: ClassTag[T], d: TejDim, s: Semiring[T]): Tej[T] =
+  )(implicit c: ClassTag[T], inline d: TejDim, s: Semiring[T]): Tej[T] =
 
     val tmp = Tej(Jet(real, Array.fill[T](d.dimension)(s.zero)))
     d.dag.addTejNode(tmp)
     tmp
 
   // From real, to compute k-th partial derivative.
-  def apply[@sp(Float, Double) T](a: T, k: Int)(implicit
+  inline def apply[@sp(Float, Double) T](a: T, k: Int)(implicit
       c: ClassTag[T],
-      d: TejDim,
+      inline d: TejDim,
       r: Rig[T]
   ): Tej[T] = {
     val v = Array.fill[T](d.dimension)(r.zero)
@@ -52,9 +56,9 @@ object Tej extends TejInstances {
   }
 
   // From real, to compute k-th partial derivative.
-  def apply[@sp(Float, Double) T](a: T, k: Array[T])(implicit
+  inline def apply[@sp(Float, Double) T](a: T, k: Array[T])(implicit
       // c: ClassTag[T],
-      d: TejDim,
+      inline d: TejDim,
       r: Rig[T]
   ): Tej[T] = {
     val tmp = Tej(Jet(a, k))
@@ -63,16 +67,16 @@ object Tej extends TejInstances {
   }
 
   // Zero real, indicator for k-th partial derivative.
-  def h[@sp(Float, Double) T](
+  inline def h[@sp(Float, Double) T](
       k: Int
-  )(implicit c: ClassTag[T], d: TejDim, r: Rig[T]): Tej[T] =
+  )(implicit c: ClassTag[T], inline d: TejDim, r: Rig[T]): Tej[T] =
     val tmp = Tej(r.zero, k)
     d.dag.addTejNode(tmp)
     tmp
 
-  def one[@sp(Float, Double) T](implicit
+  inline def one[@sp(Float, Double) T](implicit
       c: ClassTag[T],
-      d: TejDim,
+      inline d: TejDim,
       r: Rig[T]
   ): Tej[T] =
     val tmp = Tej(r.one)
@@ -142,6 +146,8 @@ final case class Tej[@sp(Float, Double) T] private (j: Jet[T])(using td: TejDim)
   // implicit def TejDimension: TejDim = TejDim(dimension)
   given jd: JetDim = td.jd
   // given ta: JetAlgebra[T] = ???
+
+  final lazy val nodeId = java.util.UUID.randomUUID()
 
   inline private def real = j.real
   inline private def infinitesimal = j.infinitesimal
@@ -215,7 +221,7 @@ final case class Tej[@sp(Float, Double) T] private (j: Jet[T])(using td: TejDim)
       b: Tej[T]
   )(implicit f: Field[T], v: VectorSpace[Array[T], T], d: TejDim): Tej[T] = {
     val tmp = Tej(j * b.j)
-    d.dag.addTejNode(tmp)
+    d.dag.addOpNode("*", tmp)
     d.dag.addTedge(lhs, tmp)
     d.dag.addTedge(b, tmp)
     tmp

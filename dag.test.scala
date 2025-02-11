@@ -17,56 +17,64 @@ class DAGSuite extends FunSuite {
 
   test("Add edges and check existence") {
     val dag = new DAG()
-    dag.addStringNode("A")
-    dag.addStringNode("B")
-    dag.addEdge(DebugNode("A"), DebugNode("B"))
+    val dna = DebugNode("A")
+    val dnb = DebugNode("B")
+    dag.addNode(dna)
+    dag.addNode(dnb)
+    dag.addEdge(dna, dnb)
 
-    assert(dag.hasEdge(DebugNode("A"), DebugNode("B")))
-    assert(!dag.hasEdge(DebugNode("B"), DebugNode("A")))
+    assert(dag.hasEdge(dna, dnb))
+    assert(!dag.hasEdge(dnb, dna))
   }
 
   test("Remove nodes and check graph persistence") {
     val dag = new DAG()
-    dag.addStringNode("A")
-    dag.addStringNode("B")
-    dag.addSedge("A", "B")
-    dag.removeNode(DebugNode("A"))
+    val dna = DebugNode("A")
+    val dnb = DebugNode("B")
+    dag.addNode(dna)
+    dag.addNode(dnb)
+    dag.addEdge(dna, dnb)
+    dag.removeNode(dna)
 
-    assertEquals(dag.AdNodes, Set[AdNode](DebugNode("B")))
-    assert(!dag.hasEdge(DebugNode("A"), DebugNode("B")))
+    assertEquals(dag.AdNodes, Set[AdNode](dnb))
+    assert(!dag.hasEdge(dna, dnb))
   }
 
   test("Remove edges and confirm") {
     val dag = new DAG()
-    dag.addStringNode("A")
-    dag.addStringNode("B")
-    dag.addSedge("A", "B")
-    dag.removeSedge("A", "B")
+    val dna = DebugNode("A")
+    val dnb = DebugNode("B")
+    dag.addNode(dna)
+    dag.addNode(dnb)
+    dag.addEdge(dna, dnb)
+    dag.removeEdge(dna, dnb)
 
-    assert(!dag.hasEdge(DebugNode("A"), DebugNode("B")))
+    assert(!dag.hasEdge(dna, dnb))
   }
 
   test("Topological sort with acyclic graph") {
     val dag = new DAG()
-    dag.addStringNode("A")
-    dag.addStringNode("B")
-    dag.addStringNode("C")
-    dag.addSedge("A", "B")
-    dag.addSedge("B", "C")
+    val dna = DebugNode("A")
+    val dnb = DebugNode("B")
+    val dnc = DebugNode("C")
+    dag.addNode(dnc)
+    dag.addNode(dnb)
+    dag.addNode(dna)
+    dag.addEdge(dna, dnb)
+    dag.addEdge(dnb, dnc)
 
     val sorted = dag.toposort
-    assertEquals(sorted, List("A", "B", "C").map(DebugNode(_)))
+    assertEquals(sorted, List(dna, dnb, dnc))
   }
 
   test("Topological sort with cyclic graph throws exception") {
     val dag = new DAG()
-    dag.addStringNode("A")
-    dag.addStringNode("B") // fix: use addStringNode instead of addNode
-    dag.addSedge("A", "B") // fix: use addSedge instead of addEdge
-    dag.addSedge(
-      "B",
-      "A"
-    ) // fix: use addSedge instead of addEdge to introduce a cycle
+    val dna = DebugNode("A")
+    val dnb = DebugNode("B")
+    dag.addNode(dna)
+    dag.addNode(dnb)
+    dag.addEdge(dna, dnb)
+    dag.addEdge(dnb, dna)
 
     intercept[IllegalArgumentException] {
       dag.toposort
@@ -75,13 +83,18 @@ class DAGSuite extends FunSuite {
 
   test("Graphviz representation correctness") {
     val dag = new DAG()
-    dag.addStringNode("A")
-    dag.addStringNode("B")
-    dag.addSedge("A", "B")
+    val dna = DebugNode("A")
+    val dnb = DebugNode("B")
+    dag.addNode(dna)
+    dag.addNode(dnb)
+    dag.addEdge(dna, dnb)
+
+    // println(dag.toGraphviz.trim)
+
     val expectedGraphviz =
       """digraph {
-        |  "B";
         |  "A" -> "B";
+        |  "B";
         |}""".stripMargin
 
     assertNoDiff(dag.toGraphviz.trim, expectedGraphviz.trim)
@@ -89,12 +102,13 @@ class DAGSuite extends FunSuite {
 
   test("Graph is empty") {
     val dag = new DAG()
+    val dna = DebugNode("A")
     assert(dag.isEmpty)
 
-    dag.addStringNode("A")
+    dag.addNode(dna)
     assert(!dag.isEmpty)
 
-    dag.removeNode(DebugNode("A"))
+    dag.removeNode(dna)
     assert(dag.isEmpty)
   }
 }

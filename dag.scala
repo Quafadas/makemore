@@ -1,48 +1,63 @@
 import scala.collection.mutable
+import java.util.UUID
+import java.{util => ju}
 
-trait AdNode
-case class DebugNode(msg: String) extends AdNode
-case class TejNode[T](tej: Tej[T]) extends AdNode
-case class TejOp[T](op: String, value: Tej[T]) extends AdNode
+trait AdNode {
+  inline def id: UUID
+}
+case class DebugNode(msg: String) extends AdNode {
+  val n = UUID.randomUUID()
+  override inline def id: UUID = n
+}
+case class TejNode[T](tej: Tej[T]) extends AdNode {
+  override inline def id: UUID = tej.nodeId
+}
+
+case class TejOp[T](op: String, value: Tej[T]) extends AdNode {
+  override inline def id: UUID = value.nodeId
+}
 
 def graphShow(adNode: AdNode): String = adNode match
-  case DebugNode(msg)   => msg
-  case TejNode(tej)     => tej.toString
-  case TejOp(op, value) => op
+  case DebugNode(msg) => msg
+  case TejNode(tej)   => tej.toString
+  case TejOp(op, value) =>
+    s"$op \n $value \n (_id: ${(value.nodeId.toString().take(4))})"
 
 class DAG {
-  private val adjacencyList: mutable.Map[AdNode, mutable.Set[AdNode]] =
+  private val adjacencyList: mutable.Map[UUID, mutable.Set[UUID]] =
     mutable.Map.empty
+  private val nodeMap: mutable.Map[UUID, AdNode] = mutable.Map.empty
 
-  inline def addAdNode(AdNode: AdNode): Unit = {
-    if (!adjacencyList.contains(AdNode)) {
-      adjacencyList(AdNode) = mutable.Set.empty
+  inline def addAdNode(adNode: AdNode): Unit = {
+    if (!adjacencyList.contains(adNode.id)) {
+      adjacencyList(adNode.id) = mutable.Set.empty
+      nodeMap(adNode.id) = adNode
     }
   }
 
-  inline def addNode(AdNode: AdNode): Unit = {
-    addAdNode(AdNode)
+  inline def addNode(adNode: AdNode): Unit = {
+    addAdNode(adNode)
   }
 
   inline def addStringNode(str: String): Unit = {
-    val AdNode = DebugNode(str)
-    addAdNode(AdNode)
+    val adNode = DebugNode(str)
+    addAdNode(adNode)
   }
 
   inline def addTejNode[T](tej: Tej[T]): Unit = {
-    val AdNode = TejNode(tej)
-    addAdNode(AdNode)
+    val adNode = TejNode(tej)
+    addAdNode(adNode)
   }
 
   inline def addOpNode[T](op: String, t: Tej[T]): Unit = {
-    val AdNode = TejOp(op, t)
-    addAdNode(AdNode)
+    val adNode = TejOp(op, t)
+    addAdNode(adNode)
   }
 
   inline def addEdge(from: AdNode, to: AdNode): Unit = {
-    require(adjacencyList.contains(from), s"AdNode $from does not exist.")
-    require(adjacencyList.contains(to), s"AdNode $to does not exist.")
-    adjacencyList(from) += to
+    require(adjacencyList.contains(from.id), s"AdNode $from does not exist.")
+    require(adjacencyList.contains(to.id), s"AdNode $to does not exist.")
+    adjacencyList(from.id) += to.id
   }
 
   inline def addTedge[T](from: Tej[T], to: Tej[T]): Unit = {
@@ -50,10 +65,10 @@ class DAG {
     val toNode = TejNode(to)
     addEdge(fromNode, toNode)
   }
+
   inline def addOpEdge[T](from: Tej[T], to: TejOp[T]): Unit = {
     val fromNode = TejNode(from)
     addEdge(fromNode, to)
-
   }
 
   inline def addSedge[T](from: String, to: String): Unit = {
@@ -62,36 +77,37 @@ class DAG {
     addEdge(fromNode, toNode)
   }
 
-  inline def removeNode(AdNode: AdNode): Unit = {
-    adjacencyList -= AdNode
-    adjacencyList.values.foreach(_ -= AdNode)
+  inline def removeNode(adNode: AdNode): Unit = {
+    adjacencyList -= adNode.id
+    nodeMap -= adNode.id
+    adjacencyList.values.foreach(_ -= adNode.id)
   }
 
   inline def removeEdge(from: AdNode, to: AdNode): Unit = {
-    adjacencyList.get(from).foreach(_ -= to)
+    adjacencyList.get(from.id).foreach(_ -= to.id)
   }
 
   inline def removeSedge(from: String, to: String): Unit = {
     val fromNode = DebugNode(from)
     val toNode = DebugNode(to)
-    adjacencyList.get(fromNode).foreach(_ -= toNode)
+    adjacencyList.get(fromNode.id).foreach(_ -= toNode.id)
   }
 
-  inline def neighbors(AdNode: AdNode): Set[AdNode] = {
-    adjacencyList.getOrElse(AdNode, Set.empty).toSet
+  inline def neighbors(adNode: AdNode): Set[AdNode] = {
+    adjacencyList.getOrElse(adNode.id, Set.empty).flatMap(nodeMap.get).toSet
   }
 
-  inline def AdNodes: Set[AdNode] = adjacencyList.keySet.toSet
+  inline def AdNodes: Set[AdNode] = nodeMap.values.toSet
 
   inline def hasEdge(from: AdNode, to: AdNode): Boolean = {
-    adjacencyList.get(from).exists(_.contains(to))
+    adjacencyList.get(from.id).exists(_.contains(to.id))
   }
 
   inline def isEmpty: Boolean = adjacencyList.isEmpty
 
   inline def toposort: List[AdNode] = {
-    val inDegree = mutable.Map[AdNode, Int]().withDefaultValue(0)
-    val zeroInDegreeQueue = mutable.Queue[AdNode]()
+    val inDegree = mutable.Map[UUID, Int]().withDefaultValue(0)
+    val zeroInDegreeQueue = mutable.Queue[UUID]()
     val sortedList = mutable.ListBuffer[AdNode]()
 
     // Initialize in-degree of each node
@@ -111,7 +127,7 @@ class DAG {
     // Process nodes with zero in-degree
     while (zeroInDegreeQueue.nonEmpty) {
       val node = zeroInDegreeQueue.dequeue()
-      sortedList += node
+      sortedList += nodeMap(node)
 
       adjacencyList(node).foreach { neighbor =>
         inDegree(neighbor) -= 1
@@ -135,11 +151,11 @@ class DAG {
 
     adjacencyList.foreach { case (node, neighbors) =>
       if (neighbors.isEmpty) {
-        sb.append(s"  \"${graphShow(node)}\";\n")
+        sb.append(s"  \"${graphShow(nodeMap(node))}\";\n")
       } else {
         neighbors.foreach { neighbor =>
           sb.append(
-            s"  \"${graphShow(node)}\" -> \"${graphShow(neighbor)}\";\n"
+            s"  \"${graphShow(nodeMap(node))}\" -> \"${graphShow(nodeMap(neighbor))}\";\n"
           )
         }
       }

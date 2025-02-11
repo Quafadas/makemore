@@ -68,6 +68,7 @@ class TejSuite extends FunSuite {
     given jd: TejDim = TejDim(2)
     val x: Tej[Double] = 1.0 + Tej.h[Double](0)
     val y: Tej[Double] = 1.0 + Tej.h[Double](1)
+    // println(jd.dag.toGraphviz)
     val result = x + y
     assertEquals(result, Tej(2.0, Array(1.0, 1.0)))
   }
@@ -120,8 +121,8 @@ class TejSuite extends FunSuite {
 
     val ttimImpl = ttim(t1, t2)
 
-    println(ttimImpl)
-    println(td.dag.toGraphviz)
+    // println(ttimImpl)
+    // println(td.dag.toGraphviz)
 
   }
 
