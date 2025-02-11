@@ -1,6 +1,12 @@
 import munit._
 
 type AdNodeString = AdNode
+import spire._
+import spire.math._
+import spire.implicits.*
+import spire.algebra.Trig
+import _root_.algebra.ring.Rig
+import _root_.algebra.ring.Field
 
 class DAGSuite extends FunSuite {
 
@@ -111,4 +117,60 @@ class DAGSuite extends FunSuite {
     dag.removeNode(dna)
     assert(dag.isEmpty)
   }
+
+  def unaryTest[Double: Rig: Trig: ClassTag](
+      fct: (Tej[Double]) => Unit
+  )(using td: TejDim) =
+    val one = Tej.one[Double]
+    fct(one)
+    assertEquals(td.dag.toposort.size, 2)
+
+  def binaryTest[Double: Rig: Trig: Field: ClassTag](
+      fct: (Tej[Double], Tej[Double]) => Unit
+  )(using td: TejDim) =
+    val one = Tej.one[Double]
+    val zero = Tej.zero[Double]
+    fct(one, zero)
+    assertEquals(td.dag.toposort.size, 3)
+
+  test("unary nodes : exp") {
+    given td: TejDim = TejDim(1)
+    unaryTest(exp[Tej[Double]])
+  }
+
+  test("unary nodes : sin") {
+    given td: TejDim = TejDim(1)
+    unaryTest(sin[Tej[Double]])
+  }
+
+  test("unary nodes : log") {
+    given td: TejDim = TejDim(1)
+    unaryTest(log[Tej[Double]])
+  }
+
+  test("unary nodes : cos") {
+    given td: TejDim = TejDim(1)
+    unaryTest(cos[Tej[Double]])
+  }
+
+  test("binary nodes : +") {
+    given td: TejDim = TejDim(1)
+    binaryTest[Double]((x, y) => x + y)
+  }
+
+  test("binary nodes : -") {
+    given td: TejDim = TejDim(1)
+    binaryTest[Double]((x, y) => x - y)
+  }
+
+  test("binary nodes : *") {
+    given td: TejDim = TejDim(1)
+    binaryTest[Double]((x, y) => x * y)
+  }
+
+  test("binary nodes : /") {
+    given td: TejDim = TejDim(1)
+    binaryTest[Double]((x, y) => x / y)
+  }
+
 }

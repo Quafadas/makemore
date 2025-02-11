@@ -10,12 +10,10 @@ import spire.algebra.Trig
   val x: Tej[Double] = 1.0 + Tej.h[Double](0)
   val y: Tej[Double] = 1.0 + Tej.h[Double](1)
 
-  // val z = x + y
-
   def f[@specialized(Double) T: Field](x: T, y: T): T = x * x + x * y
 
   def g[@specialized(Double) T: Field: Trig](x: T, y: T): T =
-    sin(log(exp(x) + exp(-y)))
+    sin(log(exp(x) + exp(-y)) - x / cos(y))
 
   // println(f(x, y))
   println(g(x, y))

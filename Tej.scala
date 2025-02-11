@@ -29,6 +29,14 @@ case class TejDim(dimension: Int) {
     dag.addNode(op)
     dag.addEdge(tn, op)
     op.value
+
+  inline def binary[T](lhs: Tej[T], rhs: Tej[T], op: TejOp[T]): Tej[T] =
+    val l = TejNode(lhs)
+    val r = TejNode(rhs)
+    dag.addNode(op)
+    dag.addEdge(l, op)
+    dag.addEdge(r, op)
+    op.value
 }
 
 object Tej extends TejInstances {
@@ -189,26 +197,17 @@ final case class Tej[@sp(Float, Double) T] private (j: Jet[T])(using td: TejDim)
   def /(b: T)(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
     Tej(real / b, infinitesimal :/ b)
   }
+
   def +(
       b: Tej[T]
   )(implicit f: Field[T], v: VectorSpace[Array[T], T], d: TejDim): Tej[T] = {
-
-    val tmp = Tej(j + b.j)
-    val op = TejOp("+", tmp)
-    d.dag.addNode(op)
-    d.dag.addOpEdge(lhs, op)
-    d.dag.addOpEdge(b, op)
-    tmp
+    d.binary(this, b, TejOp("+", Tej(j + b.j)))
   }
+
   def -(
       b: Tej[T]
   )(implicit f: Field[T], v: VectorSpace[Array[T], T], d: TejDim): Tej[T] = {
-    val tmp = Tej(j - b.j)
-    d.dag.addOpNode("-", tmp)
-    d.dag.addTedge(lhs, tmp)
-    d.dag.addTedge(b, tmp)
-
-    tmp
+    d.binary(this, b, TejOp("-", Tej(j - b.j)))
   }
   // Multiplication rule for differentials:
   //
@@ -218,16 +217,12 @@ final case class Tej[@sp(Float, Double) T] private (j: Jet[T])(using td: TejDim)
   def *(
       b: Tej[T]
   )(implicit f: Field[T], v: VectorSpace[Array[T], T], d: TejDim): Tej[T] = {
-    val tmp = Tej(j * b.j)
-    d.dag.addOpNode("*", tmp)
-    d.dag.addTedge(lhs, tmp)
-    d.dag.addTedge(b, tmp)
-    tmp
+    d.binary(this, b, TejOp("*", Tej(j * b.j)))
   }
 
   def /(
       b: Tej[T]
-  )(implicit f: Field[T], v: VectorSpace[Array[T], T]): Tej[T] = {
+  )(implicit f: Field[T], v: VectorSpace[Array[T], T], d: TejDim): Tej[T] = {
     // Division rule for differentials:
     //
     //   a + du   (a + du)(b - dv)    ab - a dv + b du   a    a       1      a   1         a
@@ -235,16 +230,17 @@ final case class Tej[@sp(Float, Double) T] private (j: Jet[T])(using td: TejDim)
     //   b + dv   (b + dv)(b - dv)           b^2         b   b^2      b      b   b         b
     //
     // which holds because dv dv = du dv = 0.
-    Tej(j / b.j)
+    d.binary(this, b, TejOp("/", Tej(j / b.j)))
   }
 
   def /~(b: Tej[T])(implicit
       c: ClassTag[T],
       f: Field[T],
       r: IsReal[T],
-      v: VectorSpace[Array[T], T]
+      v: VectorSpace[Array[T], T],
+      d: TejDim
   ): Tej[T] = {
-    Tej(j /~ b.j)
+    d.binary(this, b, TejOp("/~", Tej(j /~ b.j)))
   }
 
   def %(b: Tej[T])(implicit
@@ -317,9 +313,10 @@ final case class Tej[@sp(Float, Double) T] private (j: Jet[T])(using td: TejDim)
       f: Field[T],
       o: Order[T],
       s: Signed[T],
-      v: VectorSpace[Array[T], T]
+      v: VectorSpace[Array[T], T],
+      d: TejDim
   ): Tej[T] = {
-    Tej(j.abs)
+    d.unary(this, TejOp("abs", Tej(j.abs)))
   }
 
   // pow -- base is a constant, exponent (this) is a differentiable function.
@@ -477,9 +474,10 @@ final case class Tej[@sp(Float, Double) T] private (j: Jet[T])(using td: TejDim)
   def cos(implicit
       f: Field[T],
       t: Trig[T],
-      v: VectorSpace[Array[T], T]
+      v: VectorSpace[Array[T], T],
+      d: TejDim
   ): Tej[T] = {
-    Tej(j.cos)
+    d.unary(this, TejOp("cos", Tej(j.cos)))
   }
 
   /** cosh(a + du) ~= cosh(a) + sinh(a) du
