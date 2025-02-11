@@ -1,49 +1,98 @@
-
-
 import scala.collection.mutable
 
-trait AdNode(val name: String)
+trait AdNode
+case class DebugNode(msg: String) extends AdNode
+case class TejNode[T](tej: Tej[T]) extends AdNode
+case class TejOp[T](op: String, value: Tej[T]) extends AdNode
 
-class DAG[NODE <: AdNode | String] {
-  private val adjacencyList: mutable.Map[NODE, mutable.Set[NODE]] = mutable.Map.empty
+def graphShow(adNode: AdNode): String = adNode match
+  case DebugNode(msg)   => msg
+  case TejNode(tej)     => tej.toString
+  case TejOp(op, value) => op
 
-  def addNode(node: NODE): Unit = {
-    if (!adjacencyList.contains(node)) {
-      adjacencyList(node) = mutable.Set.empty
+class DAG {
+  private val adjacencyList: mutable.Map[AdNode, mutable.Set[AdNode]] =
+    mutable.Map.empty
+
+  inline def addAdNode(AdNode: AdNode): Unit = {
+    if (!adjacencyList.contains(AdNode)) {
+      adjacencyList(AdNode) = mutable.Set.empty
     }
   }
 
-  def addEdge(from: NODE, to: NODE): Unit = {
-    require(adjacencyList.contains(from), s"Node $from does not exist.")
-    require(adjacencyList.contains(to), s"Node $to does not exist.")
+  inline def addNode(AdNode: AdNode): Unit = {
+    addAdNode(AdNode)
+  }
+
+  inline def addStringNode(str: String): Unit = {
+    val AdNode = DebugNode(str)
+    addAdNode(AdNode)
+  }
+
+  inline def addTejNode[T](tej: Tej[T]): Unit = {
+    val AdNode = TejNode(tej)
+    addAdNode(AdNode)
+  }
+
+  inline def addOpNode[T](op: String, t: Tej[T]): Unit = {
+    val AdNode = TejOp(op, t)
+    addAdNode(AdNode)
+  }
+
+  inline def addEdge(from: AdNode, to: AdNode): Unit = {
+    require(adjacencyList.contains(from), s"AdNode $from does not exist.")
+    require(adjacencyList.contains(to), s"AdNode $to does not exist.")
     adjacencyList(from) += to
   }
 
-  def removeNode(node: NODE): Unit = {
-    adjacencyList -= node
-    adjacencyList.values.foreach(_ -= node)
+  inline def addTedge[T](from: Tej[T], to: Tej[T]): Unit = {
+    val fromNode = TejNode(from)
+    val toNode = TejNode(to)
+    addEdge(fromNode, toNode)
+  }
+  inline def addOpEdge[T](from: Tej[T], to: TejOp[T]): Unit = {
+    val fromNode = TejNode(from)
+    addEdge(fromNode, to)
+
   }
 
-  def removeEdge(from: NODE, to: NODE): Unit = {
+  inline def addSedge[T](from: String, to: String): Unit = {
+    val fromNode = DebugNode(from)
+    val toNode = DebugNode(to)
+    addEdge(fromNode, toNode)
+  }
+
+  inline def removeNode(AdNode: AdNode): Unit = {
+    adjacencyList -= AdNode
+    adjacencyList.values.foreach(_ -= AdNode)
+  }
+
+  inline def removeEdge(from: AdNode, to: AdNode): Unit = {
     adjacencyList.get(from).foreach(_ -= to)
   }
 
-  def neighbors(node: NODE): Set[NODE] = {
-    adjacencyList.getOrElse(node, Set.empty).toSet
+  inline def removeSedge(from: String, to: String): Unit = {
+    val fromNode = DebugNode(from)
+    val toNode = DebugNode(to)
+    adjacencyList.get(fromNode).foreach(_ -= toNode)
   }
 
-  def nodes: Set[NODE] = adjacencyList.keySet.toSet
+  inline def neighbors(AdNode: AdNode): Set[AdNode] = {
+    adjacencyList.getOrElse(AdNode, Set.empty).toSet
+  }
 
-  def hasEdge(from: NODE, to: NODE): Boolean = {
+  inline def AdNodes: Set[AdNode] = adjacencyList.keySet.toSet
+
+  inline def hasEdge(from: AdNode, to: AdNode): Boolean = {
     adjacencyList.get(from).exists(_.contains(to))
   }
 
-  def isEmpty: Boolean = adjacencyList.isEmpty
+  inline def isEmpty: Boolean = adjacencyList.isEmpty
 
-  def toposort: List[NODE] = {
-    val inDegree = mutable.Map[NODE, Int]().withDefaultValue(0)
-    val zeroInDegreeQueue = mutable.Queue[NODE]()
-    val sortedList = mutable.ListBuffer[NODE]()
+  inline def toposort: List[AdNode] = {
+    val inDegree = mutable.Map[AdNode, Int]().withDefaultValue(0)
+    val zeroInDegreeQueue = mutable.Queue[AdNode]()
+    val sortedList = mutable.ListBuffer[AdNode]()
 
     // Initialize in-degree of each node
     adjacencyList.foreach { case (node, neighbors) =>
@@ -80,21 +129,23 @@ class DAG[NODE <: AdNode | String] {
     sortedList.toList
   }
 
-  def toGraphviz: String = {  
-    val sb = new StringBuilder  
-    sb.append("digraph {\n")  
-  
-    adjacencyList.foreach { case (node, neighbors) =>  
-      if (neighbors.isEmpty) {  
-        sb.append(s"  \"$node\";\n")  
-      } else {  
-        neighbors.foreach { neighbor =>  
-          sb.append(s"  \"$node\" -> \"$neighbor\";\n")  
-        }  
-      }  
-    }  
-  
-    sb.append("}")  
-    sb.toString()  
-  }  
+  inline def toGraphviz: String = {
+    val sb = new StringBuilder
+    sb.append("digraph {\n")
+
+    adjacencyList.foreach { case (node, neighbors) =>
+      if (neighbors.isEmpty) {
+        sb.append(s"  \"${graphShow(node)}\";\n")
+      } else {
+        neighbors.foreach { neighbor =>
+          sb.append(
+            s"  \"${graphShow(node)}\" -> \"${graphShow(neighbor)}\";\n"
+          )
+        }
+      }
+    }
+
+    sb.append("}")
+    sb.toString()
+  }
 }

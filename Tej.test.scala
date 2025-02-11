@@ -1,5 +1,3 @@
-
-
 import munit._
 import spire._
 import spire.math._
@@ -22,10 +20,9 @@ import cats.kernel.Eq
 
 class TejSuite extends FunSuite {
 
-  def assertEqualsTejToJet[T: Eq](t: Tej[T], j: Jet[T]) = 
+  def assertEqualsTejToJet[T: Eq](t: Tej[T], j: Jet[T]) =
     assertEquals(t.j.real, j.real)
-    for (i, ji) <- t.j.infinitesimal.zip(j.infinitesimal) do
-      assertEquals(i, ji)
+    for (i, ji) <- t.j.infinitesimal.zip(j.infinitesimal) do assertEquals(i, ji)
 
   test("jet addition") {
     given jd: JetDim = JetDim(2)
@@ -102,23 +99,23 @@ class TejSuite extends FunSuite {
     val xT = Tej(1.0)
     val xJ = Jet(1.0)
     def sinT[T: Trig](t: T) = sin(t)
-    assertEqualsTejToJet( sinT(xT), sinT(xJ) )
+    assertEqualsTejToJet(sinT(xT), sinT(xJ))
   }
 
-  test("Tej constructor doesn't compile through Jet"){
-    given td : TejDim = TejDim(1)
-    given jd :JetDim = td.jd
+  test("Tej constructor doesn't compile through Jet") {
+    given td: TejDim = TejDim(1)
+    given jd: JetDim = td.jd
     val x = Tej(Jet(1.0))
   }
 
-  test("construct digraph"){
-    given td : TejDim = TejDim(2)
+  test("construct digraph") {
+    given td: TejDim = TejDim(2)
 
     val t1 = Tej(1.0) + Tej.h[Double](0)
     val t2 = Tej(2.0) + Tej.h[Double](1)
-    
+
     def sq[T: Field: Trig](x: T): T = x * x
-    
+
     def ttim[T: Field: Trig](x: T, y: T): T = x * y
 
     val ttimImpl = ttim(t1, t2)
@@ -127,6 +124,5 @@ class TejSuite extends FunSuite {
     println(td.dag.toGraphviz)
 
   }
-
 
 }
