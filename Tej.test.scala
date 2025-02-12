@@ -18,6 +18,8 @@ import spire.algebra.VectorSpace
 import spire.algebra.NRoot
 import cats.kernel.Eq
 
+
+
 class TejSuite extends FunSuite {
 
   def assertEqualsTejToJet[T: Eq](t: Tej[T], j: Jet[T]) =
