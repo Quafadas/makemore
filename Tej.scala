@@ -456,6 +456,7 @@ final case class Tej[@sp(Float, Double) T] private (j: Jet[T])(using td: TejDim)
       v: VectorSpace[Array[T], T],
       d: TejDim
   ): Tej[T] = {
+    println("sin")
     d.unary(this, TejOp("sin", Tej(j.sin)))
   }
 

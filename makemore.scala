@@ -39,19 +39,17 @@ def heatmap(data: Seq[(String, Int)])(using PlotTarget) =
     )
   )
 
-def onehot(char: Char, allChars: Map[Char, Int]) =   
+def onehot(char: Char, allChars: Map[Char, Int]) =
   val idx2 = allChars(char)
   Array.fill(allChars.size)(0.0).tap(_(idx2) = 1.0)
 
 extension (m: Matrix[Double])
-
-    inline def mapInPlace(f: Double => Double): Unit =
-      m.raw.mapInPlace(f)      
+  inline def mapInPlace(f: Double => Double): Unit =
+    m.raw.mapInPlace(f)
 
 end extension
 
-
-// @main def checkOneHot = 
+// @main def checkOneHot =
 //   val chars = ('a' to 'z').toVector
 //   val allChars = chars.zipWithIndex.toMap
 //   val char = 'c'
@@ -59,11 +57,12 @@ end extension
 //   println(onehotChar.printArr)
 
 extension (m: Matrix[Double])
-  inline def * (n: Double): Matrix[Double] = Matrix( vecxt.arrays.*(m.raw)(n), m.shape)
+  inline def *(n: Double): Matrix[Double] =
+    Matrix(vecxt.arrays.*(m.raw)(n), m.shape)
 
 end extension
 
-@main def makemore(): Unit =
+@main def makemore: Unit =
 
   val normalDist =
     new org.apache.commons.math3.distribution.NormalDistribution()
@@ -75,12 +74,11 @@ end extension
 
   def data = CSV.resource("names.txt")
 
-  /**
-   * Bookended : adds "."to either end of the string
-   * Pairs : extracts the series of pairs of the bookended characters characters
-   * Ints : indexes the bookended characters
-   * xenc : one hot encodes the characters excluding the  last character
-   */
+  /** Bookended : adds "."to either end of the string Pairs : extracts the
+    * series of pairs of the bookended characters characters Ints : indexes the
+    * bookended characters xenc : one hot encodes the characters excluding the
+    * last character
+    */
   def bookended = data
     .addColumn["Bookend", String](s => s".${s.name}.")
     .addColumn["Pairs", Seq[String]](s => s.Bookend.sliding(2).toSeq)
@@ -88,9 +86,7 @@ end extension
     .addColumn["xenc", Seq[Array[Double]]](s =>
       s.Ints.init.map(i => onehot(chars(i), charsIdx))
     )
-    // .addColumn["yenc", Seq[Array[Double]]](s =>
-    //   s.Ints.tail.map(i => onehot(chars(i), charsIdx))
-    // )
+    .addColumn["yenc", Array[Int]](s => s.Ints.tail.toArray)
 
   val combinations = for {
     a <- chars
@@ -204,29 +200,36 @@ end extension
 
   val W = Matrix(Array.fill(27 * 27)(normalDist.sample()), (27, 27))
 
-  val xencM = Matrix.fromRows(bookended.take(1).map(_.xenc).flatMap(identity).toArray )
+  val xencM = Matrix.fromRows(
+    bookended.take(1).map(_.xenc).flatMap(identity).toArray
+  )
 
-  val x: Double = scala.math.log(1.0)
+  val yChars =
+    bookended.take(1).flatMap(_.yenc).toArray
 
   // log of the "counts" of the pairs
   val logits = xencM @@ W
-  val counts = logits.tap(_.mapInPlace(Math.exp)) * 1.0
-  val probsArr = for( rowN <- 0 until counts.rows) yield     
-    val row = counts.row(rowN)
-    row / row.sum
+  val counts = logits.exp
+  val probsArr: Array[Array[Double]] =
+    (for (rowN <- 0 until counts.rows) yield
+      val row = counts.row(rowN)
+      row / row.sum
+    ).toArray
 
-  val probsNN =  Matrix.fromRows(probsArr.toArray)
+  val probsNN = Matrix.fromRows(probsArr)
 
-  // val loss = -1.0 * (xencM @@ probsNN).mapInPlace(Math.log).sum
+  println(yChars.mkString(", "))
+
+  // val loss = -1.0 * ().log.sum
 
   val range = (0 to 5).toArray
 
   println(range)
 
-  println(probsNN.shape)  
+  println(probsNN.shape)
 
   println(probsNN.row(2).sum)
 
   println(probsNN.printMat)
 
-  // mat(::, *)
+  // println(loss)

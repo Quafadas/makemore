@@ -131,11 +131,14 @@ class DAGSuite extends FunSuite {
     val one = Tej.one[Double]
     val zero = Tej.zero[Double]
     fct(one, zero)
+    // println(td.dag.toGraphviz)
+
     assertEquals(td.dag.toposort.size, 3)
 
   test("unary nodes : exp") {
     given td: TejDim = TejDim(1)
     unaryTest(exp[Tej[Double]])
+
   }
 
   test("unary nodes : sin") {
