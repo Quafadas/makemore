@@ -6,7 +6,7 @@ import _root_.algebra.ring.Field
 import spire.algebra.Trig
 import spire.syntax.rig
 import _root_.algebra.ring.Rig
-import vecxt.all.*
+import vecxt.all.`*`
 
 // import Tej.*
 // import scala.math.Fractional.Implicits.infixFractionalOps
@@ -17,8 +17,6 @@ import vecxt.BoundsCheck.DoBoundsCheck.yes
 import spire.algebra.VectorSpace
 import spire.algebra.NRoot
 import cats.kernel.Eq
-
-
 
 class TejSuite extends FunSuite {
 

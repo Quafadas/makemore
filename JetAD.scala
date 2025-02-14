@@ -480,7 +480,7 @@ final case class JetAD(
   //     t: Trig[Array[Double]]
   // ): T = {
   //   if (e === f.zero) {
-  //     f.one
+  //     one
   //   } else if (b === f.zero) {
   //     if (e < f.zero) throw new Exception("raising 0 to a negative power")
   //     else f.zero
@@ -521,7 +521,7 @@ final case class JetAD(
   //     t: Trig[Array[Double]],
   //     v: VectorSpace[Array[Double], Double]
   // ): JetAD = {
-  //   val tmp: T = p * powScalarToScalar(real, p - f.one)
+  //   val tmp: T = p * powScalarToScalar(real, p - one)
   //   new JetAD(powScalarToScalar(real, p), tmp *: infinitesimal)
   // }
 
@@ -556,7 +556,7 @@ final case class JetAD(
   //     JetAD(Array.fill(jd.size)(1.0))
   //   } else {
   //     val tmp1 = powScalarToScalar(real, b.real)
-  //     val tmp2 = b.real * powScalarToScalar(real, b.real - f.one)
+  //     val tmp2 = b.real * powScalarToScalar(real, b.real - one)
   //     val tmp3 = tmp1 * spire.math.log(real)
   //     new JetAD(tmp1, (tmp2 *: infinitesimal) + (tmp3 *: b.infinitesimal))
   //   }
@@ -569,8 +569,13 @@ final case class JetAD(
       t: Trig[Array[Double]],
       v: VectorSpace[Array[Double], Double]
   ): JetAD = {
-    new JetAD(spire.math.log(real), (f.one / real) *: infinitesimal)
+    new JetAD(
+      spire.math.log(real),
+      (Array.fill[Double](real.length)(1.0) / real) *: infinitesimal
+    )
   }
+
+  def one = Array.fill[Double](real.length)(1.0)
 
   /** sqrt(a + du) ~= sqrt(a) + du / (2 sqrt(a))
     */
@@ -580,7 +585,8 @@ final case class JetAD(
       v: VectorSpace[Array[Double], Double]
   ): JetAD = {
     val sa = real.sqrt
-    val oneHalf = f.one / (f.one + f.one)
+
+    val oneHalf = one / (one * 2)
     new JetAD(sa, (oneHalf / sa) *: infinitesimal)
   }
 
@@ -592,7 +598,7 @@ final case class JetAD(
       t: Trig[Array[Double]],
       v: VectorSpace[Array[Double], Double]
   ): JetAD = {
-    val tmp = -1.0 / spire.math.sqrt(f.one - real * real)
+    val tmp = -1.0 / spire.math.sqrt(one - real * real)
     new JetAD(spire.math.acos(real), tmp *: infinitesimal)
   }
 
@@ -604,7 +610,7 @@ final case class JetAD(
       t: Trig[Array[Double]],
       v: VectorSpace[Array[Double], Double]
   ): JetAD = {
-    val tmp = f.one / spire.math.sqrt(f.one - real * real)
+    val tmp = one / spire.math.sqrt(one - real * real)
     new JetAD(spire.math.asin(real), tmp *: infinitesimal)
   }
 
@@ -615,7 +621,7 @@ final case class JetAD(
       t: Trig[Array[Double]],
       v: VectorSpace[Array[Double], Double]
   ): JetAD = {
-    val tmp = f.one / (f.one + real * real)
+    val tmp = one / (one + real * real)
     new JetAD(spire.math.atan(real), tmp *: infinitesimal)
   }
 
@@ -631,7 +637,7 @@ final case class JetAD(
       t: Trig[Array[Double]],
       v: VectorSpace[Array[Double], Double]
   ): JetAD = {
-    val tmp = f.one / (a.real * a.real + real * real)
+    val tmp = one / (a.real * a.real + real * real)
     new JetAD(
       spire.math.atan2(real, a.real),
       ((tmp * (real * -1)) *: a.infinitesimal) + ((tmp * a.real) *: infinitesimal)
@@ -644,7 +650,7 @@ final case class JetAD(
       t: Trig[Array[Double]],
       v: VectorSpace[Array[Double], Double]
   ): JetAD = {
-    val ea = spire.math.exp(real)
+    val ea = real.exp
     new JetAD(ea, ea *: infinitesimal)
   }
 
@@ -695,7 +701,7 @@ final case class JetAD(
       v: VectorSpace[Array[Double], Double]
   ): JetAD = {
     val tan_a = spire.math.tan(real)
-    val tmp = f.one + tan_a * tan_a
+    val tmp = one + tan_a * tan_a
     new JetAD(tan_a, tmp *: infinitesimal)
   }
 
@@ -707,7 +713,7 @@ final case class JetAD(
       v: VectorSpace[Array[Double], Double]
   ): JetAD = {
     val tanh_a = spire.math.tanh(real)
-    val tmp = f.one - tanh_a * tanh_a
+    val tmp = one - tanh_a * tanh_a
     new JetAD(tanh_a, tmp *: infinitesimal)
   }
 
@@ -732,7 +738,11 @@ final case class JetAD(
     !(this === that)
 
   override def toString: String = {
-    "(%s + \nh[%s])".format(real.mkString(","), "\n" + infinitesimal.printMat)
+    s"""Real: ${real.mkString(
+        "[",
+        ",",
+        "]"
+      )}\nPartials:\n${infinitesimal.printMat}"""
   }
 }
 
@@ -747,9 +757,9 @@ trait JetADInstances {
   ): JetADAlgebra = {
     import spire.std.array.ArrayVectorSpace
     // import spire.implicits.DoubleAlgebra
-    import JetAd_TC.nrootAD
-    import JetAd_TC.fadAD
-    import JetAd_TC.trigAD
+    import JetArrayTypeClasses.nrootAD
+    import JetArrayTypeClasses.fadAD
+    import JetArrayTypeClasses.trigAD
 
     new JetADAlgebra
   }
@@ -766,8 +776,8 @@ trait JetADIsRing extends Ring[JetAD] {
   implicit def v: VectorSpace[Array[Double], Double]
   implicit def dr: Field[Double]
   import spire.implicits.DoubleAlgebra
-  import JetAd_TC.fadAD
-  import JetAd_TC.arrAD
+  import JetArrayTypeClasses.fadAD
+  import JetArrayTypeClasses.arrAD
 
   override def minus(
       a: JetAD,
@@ -821,7 +831,7 @@ trait JetADIsField(using
 ) extends JetADIsEuclideanRing
     with Field[JetAD] {
 
-  import JetAd_TC.arrAD
+  import JetArrayTypeClasses.arrAD
 
   override def fromDouble(n: Double): JetAD = JetAD(
     Array.fill(td.size)(n)
@@ -842,7 +852,7 @@ trait JetADIsTrig extends Trig[JetAD] {
   implicit def t: Trig[Array[Double]]
   implicit def v: VectorSpace[Array[Double], Double]
 
-  import JetAd_TC.fadAD
+  import JetArrayTypeClasses.fadAD
   def e: JetAD = JetAD(t.e)
   def pi: JetAD = JetAD(t.pi)
 

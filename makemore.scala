@@ -200,12 +200,14 @@ end extension
 
   val W = Matrix(Array.fill(27 * 27)(normalDist.sample()), (27, 27))
 
+  val useFirstn = 3
+
   val xencM = Matrix.fromRows(
-    bookended.take(1).map(_.xenc).flatMap(identity).toArray
+    bookended.take(useFirstn).map(_.xenc).flatMap(identity).toArray
   )
 
   val yChars =
-    bookended.take(1).flatMap(_.yenc).toArray
+    bookended.take(useFirstn).flatMap(_.yenc).toArray
 
   // log of the "counts" of the pairs
   val logits = xencM @@ W
@@ -220,16 +222,17 @@ end extension
 
   println(yChars.mkString(", "))
 
-  // val loss = -1.0 * ().log.sum
-
   val range = (0 to 5).toArray
 
+  val loss = probsNN(range, yChars).raw.log.mean * -1.0
+
+  println(loss)
   println(range)
 
   println(probsNN.shape)
 
   println(probsNN.row(2).sum)
 
-  println(probsNN.printMat)
+  // println(probsNN.printMat)
 
   // println(loss)

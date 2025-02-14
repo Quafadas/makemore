@@ -12,7 +12,6 @@ import vecxt.BoundsCheck.*
 import vecxt.BoundsCheck.DoBoundsCheck.yes
 import vecxt.dimMatCheck
 import spire.algebra.VectorSpace
-import vecxt.matrix.Matrix
 import cats.kernel.Order
 import spire.syntax.signed
 import _root_.algebra.ring.Signed
@@ -20,7 +19,7 @@ import _root_.algebra.ring.AdditiveCommutativeMonoid
 import spire.algebra.NRoot
 import cats.kernel.Eq
 
-object JetAd_TC:
+object JetArrayTypeClasses:
 
   given arrEQ: Eq[Array[Double]] = new Eq[Array[Double]] {
 
@@ -28,6 +27,31 @@ object JetAd_TC:
       x.sameElements(y)
 
   }
+
+  given arrjAD(using
+      rc: JetDim,
+      f: Field[Double]
+  ): VectorSpace[Array[Double], Double] =
+    new VectorSpace[Array[Double], Double] {
+
+      override inline def negate(x: Array[Double]): Array[Double] =
+        vecxt.arrays.*(x)(-1)
+
+      override inline def zero: Array[Double] =
+        Array.fill[Double](rc.dimension)(0.0)
+
+      override inline def plus(
+          x: Array[Double],
+          y: Array[Double]
+      ): Array[Double] =
+        vecxt.arrays.+(x)(y)
+
+      override inline def timesl(r: Double, v: Array[Double]): Array[Double] =
+        vecxt.arrays.*(v)(r)
+
+      override implicit inline def scalar: Field[Double] = f
+
+    }
 
   given arrAD(using
       rc: JetADDim,

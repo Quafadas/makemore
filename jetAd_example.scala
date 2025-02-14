@@ -1,6 +1,6 @@
 import spire._
 import spire.math._
-import spire.implicits._
+import spire.implicits.*
 import spire.algebra.Trig
 import _root_.algebra.ring.Field
 
@@ -37,11 +37,68 @@ import vecxt.all.ones
 
   // }
 
-  // given jd: JetDim = JetDim(2)
-  // val x: Jet[Double] = 2.0 + Jet.h[Double](0)
-  // val y: Jet[Double] = 3.0 + Jet.h[Double](1)
+  import Reducible.rd
+  import Reducible.rjd
+  import Reducible.rarrj
+  import JetArrayTypeClasses.arrjAD
+  import JetArrayTypeClasses.fadAD
+  import JetArrayTypeClasses.trigAD
+  import JetArrayTypeClasses.nrootAD
+  import JetArrayTypeClasses.signed
 
-  // def f[@specialized(Double) T: Field](x: T, y: T): T = x * x + x * y
+  given jd: JetDim = JetDim(3)
+
+  val x: Jet[Double] = 1.0 + Jet.h[Double](0)
+  val y: Jet[Double] = 2.0 + Jet.h[Double](1)
+  val z: Jet[Double] = 3.0 + Jet.h[Double](2)
+
+  given jad: JetADDim = JetADDim((3, 3))
+
+  val jetArr = JetAD(Array(1.0, 2.0, 3.0), Matrix.eye[Double](3))
+
+  def f[@specialized(Double) T: Field: Trig: NRoot](x: T, y: T): T = exp(
+    -Field[T].pow((sin(x) - cos(y)), 2)
+  )
+
+  def g[F[_], @specialized(Double) T: Field: Trig: NRoot](x: T, y: T): T =
+    x + y + exp(x * y)
+
+  def g3[F[_], @specialized(Double) T: Field: Trig: NRoot](
+      x: T,
+      y: T,
+      z: T
+  ): T =
+    x + y + z + log(x * y * z)
+
+  def gVec[F[_], @specialized(Double) T: Field: Trig: NRoot](x: F[T])(using
+      r: Reducible[F, T]
+  ): T =
+    x.sum + x.product.log
+
+  println("Pure: x = 1.0, y = 2.0")
+  println(g[cats.Id, Double](1.0, 2.0))
+
+  println("Jet: x = 1.0, y = 2.0")
+  println(g3[cats.Id, Jet[Double]](x, y, z))
+
+  println("Vectorised form")
+  println("TARGET---- ")
+  println(gVec[Array, Double](Array(1.0, 2.0, 3.0)))
+
+  println(gVec(Array(x, y, z)))
+  println("TARGET -------")
+  // println("Start val")
+  // println(jetArr)
+  println("End val")
+  println(gVec[Id, JetAD](jetArr))
+
+  // given td: TejDim = TejDim(2)
+
+  // val xT = Tej(1.0) + Tej.h[Double](0)
+  // val yT = Tej(2.0) + Tej.h[Double](1)
+
+  // println(g(xT, yT))
+  // println(td.dag.toGraphviz)
 
   // def soA(
   //     x: Array[Double],
@@ -74,30 +131,30 @@ import vecxt.all.ones
 
   // val z = so(x, y)
 
-  def sq[T: Field](x: T): T = x * x
-  def sqExp[T: Field: Trig](x: T): T =
-    (x * x + exp(x) - log(x) + exp(sin(x))) / x
+  // def sq[T: Field](x: T): T = x * x
+  // def sqExp[T: Field: Trig](x: T): T =
+  //   (x * x + exp(x) - log(x) + exp(sin(x))) / x
 
-  given jd: JetDim = JetDim(1)
-  val simpleJet1 = Jet(1.0) + Jet.h[Double](0)
-  val simpleJet2 = Jet(2.0) + Jet.h[Double](0)
-  val xa = Array[Double](1, 2, 3)
-  val ya = Array[Double](1, 2, 3)
+  // given jd: JetDim = JetDim(1)
+  // val simpleJet1 = Jet(1.0) + Jet.h[Double](0)
+  // val simpleJet2 = Jet(2.0) + Jet.h[Double](0)
+  // val xa = Array[Double](1, 2, 3)
+  // val ya = Array[Double](1, 2, 3)
 
-  println("Seuare only")
-  println(sq(simpleJet1))
-  println(sq(simpleJet2))
+  // println("Seuare only")
+  // println(sq(simpleJet1))
+  // println(sq(simpleJet2))
 
-  import JetAd_TC.signed
-  given jd2: JetADDim = JetADDim((2, 1))
+  // import JetAd_TC.signed
+  // given jd2: JetADDim = JetADDim((2, 1))
 
-  val xJD: JetAD = JetAD(Array[Double](1.0, 2.0), Matrix.ones[Double]((1, 2)))
-  val zAD = sq(xJD)
+  // val xJD: JetAD = JetAD(Array[Double](1.0, 2.0), Matrix.ones[Double]((1, 2)))
+  // val zAD = sq(xJD)
 
-  println(zAD)
-  println("With Exp")
+  // println(zAD)
+  // println("With Exp")
 
-  println(sqExp(simpleJet1))
-  println(sqExp(simpleJet2))
+  // println(sqExp(simpleJet1))
+  // println(sqExp(simpleJet2))
 
-  println(sqExp(xJD))
+  // println(sqExp(xJD))
