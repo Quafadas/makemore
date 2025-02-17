@@ -14,5 +14,3 @@
 //> using javaOpt "--add-modules=jdk.incubator.vector"
 
 //> using resourceDir "./data"
-
-//> using javaOpt "--add-modules=jdk.incubator.vector"

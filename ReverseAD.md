@@ -19,7 +19,7 @@ From what I can tell, Torch has quietly built up a directed Acyclic Graph (DAG) 
 
 Well hot damn. Does anyone have a scala version of one of these lying around? As far as I can tell, not _really_.
 
-My research into it tweaked my curiosity. I ended up fascinated from both a Math, Programming, and, interestingly, eco-system perspective. Because _every_ calculation has to pass through whatever "metaprogram" records the directed graph of the calculations - one can't "eject" briefly into Torch, and then come back. Oh no... if you're doing this productiong grade, it's more or less re-write the entire thing in Torch.
+My research into it tweaked my curiosity. I ended up fascinated from both a Math, Programming, and, interestingly, eco-system perspective. Because _every_ calculation has to pass through whatever "metaprogram" records the directed graph of the calculations - one can't "eject" briefly into Torch, and then come back. Oh no... if you're doing this production grade, it's more or less re-write the entire thing in Torch.
 
 ## What to do?
 
@@ -55,7 +55,7 @@ Blogs
 
 ## Approach
 
-I've come to realise, that [Spire](https://github.com/typelevel/spire) is a bit of an unmarketed gem in the Scala ecosystem. It's a library for numerical computing, and it's got a lot of the building blocks we need. You get, for example, "Forward AD" essentially free through function composition, through it's "Jet" concept.
+I've come to realise, that [Spire](https://github.com/typelevel/spire) is a bit of an unmarketed gem in the Scala ecosystem. It's a library for numerical computing, and it's got a lot of the building blocks we need. You get, for example, "Forward AD" essentially free through function composition, through it's "Jet" concept. We're going to explore this below in our first pass.
 
 Given:
 $ x = (1.0 + h_0)$
@@ -92,21 +92,31 @@ Then the partial derivative of f with respect to x is $2x$, and with respect to 
 
     val messyResult = messy(x, y)
 
+    println(messy(1.0, 2.0))
+
     assertEquals(messyResult, Jet(1.0 + exp(1), Array(2, exp(1))))
   }
 ```
 
 Which (assuming you remember your calculus) is the correct result. Crucially, it tells us that we gain "forward mode AD" from Spire, straight out the box. Pretty sweet...
 
+It's worth noting, that this higher order function has some nice properties. You can push a double straight through it for example, just to experiement with the shape of it, before moving into gradients.
+
 ## Design
 
-One of the particulaly attractive parts about building on top of Spire, is that some prior genius already set out `Duel` (or `Jet`) derivatives of common operations. So we don't need to break out the math textbooks and figure out the chain rule for `sin` for example. We get that free and battle tested. Further, Spire's design seems quite amenable to extension. 
+One of the particulaly attractive parts about building on top of Spire, is that some prior genius already set out `Duel` (or `Jet`) derivatives of common operations. So we don't need to break out the math textbooks and figure out the chain rule for `sin` for example. We get that free and battle tested. Further, Spire's design seems quite amenable to extension.
 
-At a high level our plan will be to "compose" a `Jet` into a new construct let's call it a `Tej` (backwards jet, see what I did there???). Our `Tej` will delegate math to `Jet`, but record the directed graph of calculations, enabling (we hope) a reverse AD mode. Conretely, 
+We're going to pursue two paths;
+
+1. Vectorisation: Once you try to actually _implement_ the functions that get you to the training run, you realise that vectorisation is necessary. Otherwise grug brain confused.
+
+2. Reverse AD by "composing" a `Jet` into a new construct let's call it a `Tej` (backwards jet, see what I did there???). Our `Tej` will delegate math to `Jet`, but record the directed graph of calculations, enabling (we hope) a reverse AD mode. Conretely,
 
 ```scala
-case class Tej(j: Jet) 
+case class Tej(j: Jet)
 ```
 If this worked, it _might_ fit quite nicely into some other prior art, providing a smooth developer experience and clean useage at the call site, without requiring a large refactoring. Let's see what happens...
+
+## Vectorisation
 
 
