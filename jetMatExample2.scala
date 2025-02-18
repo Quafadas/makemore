@@ -55,7 +55,7 @@ import vecxt.*
   def gVecMat[F[_]: JetMatrixTypeClasses](
       x: Matrix[F[Double]]
   )(using jd: JetDim, r: Ring[F[Double]]): F[Double] =
-    x.exp.sum
+    (x @@ x).log.sum
 
   val x = Matrix[Jet[Double]](
     range.jetArr,
