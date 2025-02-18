@@ -93,11 +93,9 @@ case class TejOpBinary[T: Field](
   override def backward(using td: TejDim[T]): Unit = {
     val leftN = td.dag.getNode(left)
     val rightN = td.dag.getNode(right)
-    println(leftN)
     op match
       case BinaryOps.Add =>
         leftN.grad = leftN.grad + this.grad
-        println(leftN)
         rightN.grad = rightN.grad + this.grad
       case BinaryOps.Sub =>
         leftN.grad += this.grad
@@ -177,7 +175,7 @@ class DAG[T: Field: ClassTag: Trig] {
   inline def addEdge[T](from: AdNode[T], to: AdNode[T]): Unit = {
     require(adjacencyList.contains(from.id), s"AdNode $from does not exist.")
     require(adjacencyList.contains(to.id), s"AdNode $to does not exist.")
-    println(s"Adding edge from ${from} to ${to}")
+    // println(s"Adding edge from ${from} to ${to}")
     adjacencyList(from.id) += to.id
   }
 

@@ -40,7 +40,7 @@ import vecxt.*
     ): Array[Tej[Double]] =
       a.zipWithIndex.map(d =>
         Tej(d._1.toDouble)
-          + Tej.h(d._2)
+        // + Tej.h(d._2)
       )
 
   val upper = 2
@@ -66,7 +66,7 @@ import vecxt.*
     (upper, upper)
   )
 
-  println("MATRIX2 -------")
+  println("Forward Pass -------")
   val out = gVecMat[Jet](x)
   val outT = gVecMat[Tej](xT)
 
@@ -76,22 +76,16 @@ import vecxt.*
 
   println
 
+  println("This is pure spire forward mode - :-) I trust it.")
   println(out.toString())
 
-  println(tejD.dag.toGraphviz)
+  // if you want to see the calcualtion graph
+  // println(tejD.dag.toGraphviz)
 
   val backward = outT.backward
-  // println(tejD.dag.getAllNodes.mkString("\n"))
-  // println(tejD.dag.getAllEdges.mkString("\n"))
-  println(backward.size)
-  println(
-    backward.zipWithIndex
-      .map((n, i) => (n.id, n.grad, n.realValue))
-      .mkString("\n")
-  )
 
   println
-  println(outT.toString())
+  // println(outT.toString())
 
   println("Nodes of interest; ")
 
