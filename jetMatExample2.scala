@@ -47,7 +47,7 @@ import vecxt.*
   val range = (1 to upper.pow(2)).toArray.map(i => i * 4)
   given jd: JetDim = JetDim(upper.pow(2))
 
-  given tejD: TejDim[Double] = TejDim[Double](upper.pow(2))
+  given tejD: TejDim[Double] = TejDim[Double](1)
 
   given tc: JetMatrixTypeClasses[Jet] = JetMatrixTypeClasses.matJetTC
   given tcTej: JetMatrixTypeClasses[Tej] = TejMatrixTypeClasses.matTejTC
@@ -55,7 +55,7 @@ import vecxt.*
   def gVecMat[F[_]: JetMatrixTypeClasses](
       x: Matrix[F[Double]]
   )(using jd: JetDim, r: Ring[F[Double]]): F[Double] =
-    (x).exp.sum
+    x.exp.sum
 
   val x = Matrix[Jet[Double]](
     range.jetArr,
@@ -72,7 +72,7 @@ import vecxt.*
 
   println("input: x ")
 
-  x.pt
+  xT.pt
 
   println
 
@@ -82,12 +82,17 @@ import vecxt.*
   // if you want to see the calcualtion graph
   // println(tejD.dag.toGraphviz)
 
+  println(
+    "We did the forward pass above, but _without_ calculating the gradients - TejDim was set to zero and there's no infintesimals in the input."
+  )
   val backward = outT.backward
 
   println
   // println(outT.toString())
 
-  println("Nodes of interest; ")
+  println(
+    "Let's haul the results out of the backward pass. Nodes of interest; "
+  )
 
   val nodeInterests = xT.raw.flatMap(n => backward.find(_.id == n.nodeId))
   println(nodeInterests.mkString("\n"))
