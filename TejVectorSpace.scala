@@ -12,7 +12,7 @@ import vecxt.BoundsCheck.DoBoundsCheck.yes
 
 object TejArrayDouble:
 
-  given fieldRig(using td: TejDim): Field[Array[Double]] =
+  given fieldRig(using td: TejDim[Double]): Field[Array[Double]] =
     new Field[Array[Double]] {
 
       inline override def negate(x: Array[Double]): Array[Double] = x.map(-_)
@@ -32,7 +32,7 @@ object TejArrayDouble:
         x.zip(y).map((a, b) => a * b)
     }
 
-  given vs(using td: TejDim): VectorSpace[Array[Double], Double] =
+  given vs(using td: TejDim[Double]): VectorSpace[Array[Double], Double] =
     new VectorSpace[Array[Double], Double] {
       def scalar: Field[Double] = Field[Double]
       def timesl(r: Double, v: Array[Double]): Array[Double] = v * r

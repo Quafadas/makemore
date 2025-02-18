@@ -223,7 +223,7 @@ object JetADExt:
   extension (arr: Array[Double])
     def *:(m: Matrix[Double]): Matrix[Double] =
       val cols = for (i <- 0 until arr.length) yield m.col(i) * arr(i)
-      Matrix.fromColumns(cols.toArray)
+      Matrix.fromColumns(cols*)
 
   end extension
 
@@ -240,7 +240,7 @@ final case class JetAD(
         for (i <- 0 until arr.length)
           yield m.col(i) * arr(i)
 
-      Matrix.fromColumns(cols.toArray)
+      Matrix.fromColumns(cols*)
 
   def dimension: RowCol = infinitesimal.shape
   implicit def JetADDimension: JetADDim = JetADDim(dimension)

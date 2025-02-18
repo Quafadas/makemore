@@ -65,7 +65,7 @@ class TejSuite extends FunSuite {
   }
 
   test("Tej addition") {
-    given jd: TejDim = TejDim(2)
+    given jd: TejDim[Double] = TejDim(2)
     val x: Tej[Double] = 1.0 + Tej.h[Double](0)
     val y: Tej[Double] = 1.0 + Tej.h[Double](1)
     // println(jd.dag.toGraphviz)
@@ -74,7 +74,7 @@ class TejSuite extends FunSuite {
   }
 
   test("Tej multiplication") {
-    given jd: TejDim = TejDim(2)
+    given jd: TejDim[Double] = TejDim(2)
     val x: Tej[Double] = 1.0 + Tej.h[Double](0)
     val y: Tej[Double] = 1.0 + Tej.h[Double](1)
     val result = x * y
@@ -82,20 +82,20 @@ class TejSuite extends FunSuite {
   }
 
   test("Tej equality") {
-    given jd: TejDim = TejDim(2)
+    given jd: TejDim[Double] = TejDim(2)
     val x = Tej(1.0)
     val y = Tej(1.0)
     assertEquals(x, y)
   }
 
   test("zero Tej") {
-    given jd: TejDim = TejDim(2)
+    given jd: TejDim[Double] = TejDim(2)
     val zero = Tej.zero[Double]
     assertEquals(zero, Tej(0.0, Array(0.0, 0.0)))
   }
 
   test("sin") {
-    given td: TejDim = TejDim(1)
+    given td: TejDim[Double] = TejDim(1)
     given jd: JetDim = td.jd
     val xT = Tej(1.0)
     val xJ = Jet(1.0)
@@ -103,14 +103,23 @@ class TejSuite extends FunSuite {
     assertEqualsTejToJet(sinT(xT), sinT(xJ))
   }
 
-  test("Tej constructor doesn't compile through Jet") {
-    given td: TejDim = TejDim(1)
+  test("log") {
+    given td: TejDim[Double] = TejDim(1)
     given jd: JetDim = td.jd
-    val x = Tej(Jet(1.0))
+    val xT = Tej(1.0)
+    val xJ = Jet(1.0)
+    def logT[T: Trig](t: T) = log(t)
+    assertEqualsTejToJet(logT(xT), logT(xJ))
   }
 
+  // test("Tej constructor doesn't compile through Jet") {
+  //   given td: TejDim[Double] = TejDim(1)
+  //   given jd: JetDim = td.jd
+  //   val x = Tej(Jet(1.0))
+  // }
+
   test("construct digraph") {
-    given td: TejDim = TejDim(2)
+    given td: TejDim[Double] = TejDim(2)
 
     val t1 = Tej(1.0) + Tej.h[Double](0)
     val t2 = Tej(2.0) + Tej.h[Double](1)

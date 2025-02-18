@@ -205,7 +205,7 @@ end extension
 
   val useFirstn = 3
 
-  val xencM = Matrix.fromRows(
+  val xencM = Matrix.fromRowsArray(
     bookended.take(useFirstn).map(_.xenc).flatMap(identity).toArray
   )
 
@@ -221,7 +221,7 @@ end extension
       row / row.sum
     ).toArray
 
-  val probsNN = Matrix.fromRows(probsArr)
+  val probsNN = Matrix.fromRowsArray(probsArr)
 
   println(yChars.mkString(", "))
 
