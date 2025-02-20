@@ -7,6 +7,7 @@
 //> using dep org.typelevel::spire::0.18.0
 //> using dep org.typelevel::cats-core:2.13.0
 //> using dep org.scala-lang.modules::scala-parallel-collections::1.2.0
+//> using dep io.github.quafadas::spireAD:0.0.0-11-217d7d-DIRTYe419e682
 //> using test.dep org.scalameta::munit::1.1.0
 
 //> using options "-experimental" "-language:experimental.namedTuples"

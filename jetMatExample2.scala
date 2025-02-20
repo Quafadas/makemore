@@ -1,3 +1,5 @@
+import io.github.quafadas.spireAD.*
+
 import spire._
 import spire.math._
 import spire.implicits.*
@@ -24,11 +26,9 @@ import _root_.algebra.ring.Ring
 import vecxt.all.update
 import vecxt.all.apply
 import vecxt.*
+import spire.math.Jet.*
 
 @main def jetMatExample2 =
-  import spire.math.Jet.*
-
-  // given jmat: JetMatDim = JetMatDim((1, 2))
 
   extension [T: Numeric](a: Array[T])
     def jetArr(using jd: JetDim): Array[Jet[Double]] =
