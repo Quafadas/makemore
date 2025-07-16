@@ -1,16 +1,14 @@
-//> using scala 3.6.2
+//> using scala 3.7.1
 
-//> using dep io.github.quafadas::scautable:0.0.18
-//> using dep io.github.quafadas::vecxt::0.0.24-22-efe8da-DIRTYeca985b5
+//> using jvm 24
+
+//> using dep io.github.quafadas::scautable:0.0.24
+//> using dep io.github.quafadas::vecxt::0.0.31
+//> using dep io.github.quafadas::spireAD::0.0.10-20-50727a
 //> using dep io.github.quafadas::dedav4s:0.9.3
 //> using dep org.apache.commons:commons-math3:3.6.1
 //> using dep org.typelevel::spire::0.18.0
 //> using dep org.typelevel::cats-core:2.13.0
-//> using dep org.scala-lang.modules::scala-parallel-collections::1.2.0
-//> using dep io.github.quafadas::spireAD:0.0.0-11-217d7d-DIRTYe419e682
-//> using test.dep org.scalameta::munit::1.1.0
-
-//> using options "-experimental" "-language:experimental.namedTuples"
 
 //> using javaOpt "--add-modules=jdk.incubator.vector"
 

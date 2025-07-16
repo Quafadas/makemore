@@ -2,11 +2,13 @@ import io.github.quafadas.table.*
 
 // import viz.PlotNt.plot
 import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
-
+import io.github.quafadas.spireAD.*
+import scala.reflect.ClassTag
 // import scala.NamedTuple
 // import scala.NamedTuple.*
-import vecxt.all.*
+// import vecxt.all.*
 // import viz.NamedTupleReadWriter.given
+import vecxt.arrays.*
 import viz.PlotTargets.doNothing
 import viz.FromResource
 import viz.PlotTarget
@@ -17,10 +19,16 @@ import scala.collection.View
 import scala.collection.immutable.HashMap
 import vecxt.BoundsCheck.DoBoundsCheck.yes
 import scala.util.chaining.*
-import scala.collection.parallel.CollectionConverters._
-import scala.collection.parallel.ParIterable.*
-import scala.collection.parallel.ParMap
-import scala.collection.parallel.ParSeq
+
+import io.github.quafadas.spireAD.*
+import spire.*
+import spire.implicits.*
+import spire.algebra.*
+import vecxt.matrix.Matrix
+import vecxt.all.*
+import scala.reflect.ClassTag
+import vecxt.all.row
+import cats.syntax.all.toShow
 
 type JsonMod = ujson.Value => Unit
 case class HeatmapBigram(override val mods: Seq[JsonMod] = List())(using
@@ -47,12 +55,6 @@ def onehot(char: Char, allChars: collection.Map[Char, Int]): Array[Double] =
   val idx2 = allChars(char)
   Array.fill(allChars.size)(0.0).tap(_(idx2) = 1.0)
 
-extension (m: Matrix[Double])
-  inline def mapInPlace(f: Double => Double): Unit =
-    m.raw.mapInPlace(f)
-
-end extension
-
 // @main def checkOneHot =
 //   val chars = ('a' to 'z').toVector
 //   val allChars = chars.zipWithIndex.toMap
@@ -60,20 +62,67 @@ end extension
 //   val onehotChar = onehot(char, allChars)
 //   println(onehotChar.printArr)
 
-extension (m: Matrix[Double])
-  inline def *(n: Double): Matrix[Double] =
-    Matrix(vecxt.arrays.*(m.raw)(n), m.shape)
+import cats.Show
 
-end extension
+object detailShow:
+  given Show[Matrix[Double]] with
+    def show(matrix: Matrix[Double]): String =
+      val rows =
+        for i <- 0 until Math.min(1, matrix.rows)
+        yield matrix
+          .row(i)
+          .map(s => "%.3f".format(s).reverse.padTo(6, ' ').reverse)
+          .mkString(" | ")
+      val footer = ("-" * (rows.head.length))
+      (rows :+ footer).mkString("\n")
+
+  given Show[Array[Double]] with
+    def show(arr: Array[Double]): String =
+
+      arr.map("%.3f".format(_).reverse.padTo(6, ' ').reverse).mkString("[", ", ", "]")
+
+  given Show[Scalar[Double]] with
+    def show(arr: Scalar[Double]): String =
+      arr.scalar.toString
+
+object LiteShow:
+  given Show[Matrix[Double]] with
+    def show(matrix: Matrix[Double]): String =
+      "Mat"
+
+  given Show[Array[Double]] with
+    def show(arr: Array[Double]): String =
+      "arr"
+
+  given Show[Scalar[Double]] with
+    def show(arr: Scalar[Double]): String =
+      "%.3f".format(arr.scalar)
+
+def graphDebug(s: String) =
+  os.write.over(os.Path("/Users/simon/Code/makemore") / "graph.dot", s)
+
+
+def saveMatrixToCSV(matrix: Matrix[Double], filePath: String): Unit =
+  val lines = for (i <- 0 until matrix.rows) yield matrix.row(i).mkString(",")
+  os.write.over(os.Path(filePath, os.pwd), lines.mkString("\n"))
+
+def loadMatrixFromCSV(filePath: String)(using ClassTag[Double]): Matrix[Double] =
+  val lines = os.read.lines(os.Path(filePath, os.pwd))
+  val data = lines.map(_.split(",").map(_.toDouble)).toArray
+  Matrix.fromRowsArray(data)
+
 
 @main def makemore: Unit =
+
+  val generateWeights = false
+  import LiteShow.given
 
   val normalDist =
     new org.apache.commons.math3.distribution.NormalDistribution()
 
   val smooth = true
 
-  val chars = '.' +: ('a' to 'z').toVector.par
+  val chars = '.' +: ('a' to 'z').toVector
   val charsIdx = chars.zipWithIndex.toMap
 
   def data: CsvIterator[Tuple1["name"]] = CSV.resource("names.txt")
@@ -91,151 +140,175 @@ end extension
       s.Ints.init.map(i => onehot(chars(i), charsIdx.seq))
     )
     .addColumn["yenc", Array[Int]](s => s.Ints.tail.toArray)
+    // .take(10)
 
   val combinations = for {
     a <- chars
     b <- chars
   } yield s"$a$b"
 
-  val pairSet = bookended.toVector.par
-    .flatMap(_.Pairs.toSeq)
-    .groupBy(identity)
-    .mapValues(_.size)
+  println("Change lange to neural network")
+  println(s"Check Data")
+  println(bookended.take(5).mkString("\n"))
 
-  val missing = combinations.par.toSet.diff(pairSet.keys.toSet)
+  val dimensions = 27 * 27
+  val randoms = Array.fill(dimensions)(normalDist.sample())
 
-  val completePairs = (pairSet ++ missing.map(_ -> 0)).toSeq.map {
-    case (k, v) => if (smooth) (k, v + 1) else (k, v)
-  }
+  val W = if (generateWeights)
+    val tmp = Matrix(randoms, (27, 27))
+    saveMatrixToCSV(tmp, "weights.csv")
+    tmp
+  else
+    loadMatrixFromCSV("weights.csv")
 
-  println("Check raw data processing")
-  bookended.take(5).toVector.ptbln
+  val xnencM =
+    bookended
+      // .take(useFirstn)
+      .flatMap(_.xenc)
 
-  println("Check pairSet")
-  completePairs.take(10).toVector.ptbl
+  val xencMall: Matrix[Double] = Matrix.fromRowsArray(
+    xnencM.toArray
+  )
 
-  println("plot heatmap")
-  heatmap(completePairs.seq) // (using PlotTargets.doNothing)
+  println(xencMall.shape)
+  val yChars =
+    bookended.flatMap(_.yenc).toArray
 
-  val grouped = completePairs.groupBy(d => d._1.head)
-  val normalised = grouped.mapValues { v =>
-    // println(v.sortBy(_._1.last))
-    val row = v.seq.sortBy(_._1.last).map(_._2.toDouble)
-    new EnumeratedIntegerDistribution(
-      chars.zipWithIndex.map(_._2).toArray,
-      row.toArray
-    )
-  }.toMap
+  inline def calcLoss(
+      weights: Matrix[Double],
+      incomingData: Matrix[Double],
+      targets: Array[Int]
+  )(using
+      inline mOps: Matrixy[Matrix, Double],
+      inline fm: VectorisedField[Matrix, Double],
+      inline fa: VectorisedTrig[Array, Double],
+      inline fas: VectorisedField[Scalar, Double],
+      inline faa: VectorisedField[Array, Double],
+      inline redArr: Reductions[Array, Double, 1],
+      inline redMat: Reductions[Matrix, Double, 2],
+      inline t: VectorisedTrig[Matrix, Double],
+      nt: Numeric[Double],
+      ct: ClassTag[Double]
+  ): Scalar[Double] =
+    val logits = incomingData @@ weights
+    val counts = logits.exp
+    val probsNN = counts.mapRows(row => row / row.sum)
+    val range = (0 until targets.length).toArray.zip(targets)
+    -Scalar(probsNN(range).mapRowsToScalar(_.sum).log.mean)
+
+  val loss = calcLoss(W, xencMall, yChars)
+  println(loss)
+
+  inline def calcLossF(
+      weights: TejV[Matrix, Double],
+      incomingData: TejV[Matrix, Double],
+      targets: Array[Int]
+  )(using
+      inline mOps: Matrixy[Matrix, Double],
+      inline fm: VectorisedField[Matrix, Double],
+      inline fa: VectorisedField[Array, Double],
+      inline fas: VectorisedField[Scalar, Double],
+      fi: Field[Double],
+      // inline redArr: Reductions[F, T, 1],
+      inline redMat: Reductions[Matrix, Double, 2],
+      inline redArr: Reductions[Array, Double, 1],
+      inline vtm: VectorisedTrig[Matrix, Double],
+      inline vta: VectorisedTrig[Array, Double],
+      inline vts: VectorisedTrig[Scalar, Double],
+      inline dag: TejVGraph[Double],
+      inline nt: Numeric[Double],
+      inline ct: ClassTag[Double],
+      inline sh: Show[Matrix[Double]],
+      inline sha: Show[Array[Double]],
+      inline shs: Show[Scalar[Double]]
+  ): TejV[Scalar, Double] =
+
+    val logits = incomingData @@ weights
+
+    val probsNN = logits.softmaxRows
+    // println(s"ProbsNN: ${probsNN.value(Array(0,1), ::).printMat}")
+    val range: Array[(Int, Int)] = (0 until targets.length).toArray.zip(targets)
+    // println(s"Range: ${range.take(5).mkString(", ")}")
+    // val selected = probsNN(range)
+    // println(s"Selected: ${selected.value(Array(0,1), ::).printMat}")
+    // val mat: Matrix[Double] = selected.value
+    val selected = probsNN.arrange(range)
+    // println(s"Selected: ${selected.value.take(10).mkString(", ")}")
+
+    val theloss = (  selected + 1e-8d.tej).log.mean * TejV(Scalar(fi.fromDouble(-1.0)))
+    theloss
+
+  @annotation.tailrec
+  def train(
+    weights: Matrix[Double],
+    data: Matrix[Double],
+    targets: Array[Int],
+    learningRate: Double,
+    steps: Int
+  ): TejV[Matrix, Double] =
+    given graph: TejVGraph[Double] = TejVGraph[Double]()
+    val weights_ = TejV(weights)
+    val data_ = TejV(data)
+
+    if steps == 0 then
+        weights_
+    else
+      val loss = calcLossF(weights_, data_, targets)
+      val grad = loss.backward2((weights = weights_))
+      val updated = weights - (grad.weights * learningRate)
+      if steps % 10 == 0 then
+        println(s"Step $steps, loss: ${loss.value.scalar}, rate: $learningRate")
+      if steps - 1 == 0  then
+        graphDebug(graph.dag.toGraphviz)
+        println(s"Final loss: ${loss.value.scalar}")
+
+      val learningRate_ = if steps % 20 == 0 then learningRate - 0.1 else learningRate
+
+      // Tail recursive: last call is train
+      train(updated, data, targets, learningRate_, steps - 1)
 
   def generate(
-      inChars: collection.parallel.ParSeq[Char],
-      charDist: ParMap[
-        Char,
-        EnumeratedIntegerDistribution
-      ]
+      inChar: Char,
+      weights: Matrix[Double],
+      charDist: Map[Char, EnumeratedIntegerDistribution],
+      chars: Seq[(Char, Int)]
   ) =
-    Iterator.unfold[Char, Char]('.') { c =>
-      // println(s"generate $c")
-      val nextChar = charDist.get(c) match
-        case Some(d) =>
-          val next = d.sample()
-          // println(next)
-          inChars(next)
-        case None => '.'
+    ???
+    // Iterator.unfold[Char, Char]('.') { c =>
+    //   // println(s"generate $c")
+    //   val nextChar = charDist.get(c) match
+    //     case Some(d) =>
+    //       val next = d.sample()
+    //       // println(next)
+    //       inChars(next)
+    //     case None => '.'
 
-      // println(nextChar)
-      nextChar match
-        case '.' => None
-        case newChar =>
-          Some(newChar -> newChar)
-    }
+    //   // println(nextChar)
+    //   nextChar match
+    //     case '.' => None
+    //     case newChar =>
+    //       Some(newChar -> newChar)
+    // }
 
-  // println("normalised")
-  // pprintln(normalised)
-  // val getFirst: EnumeratedIntegerDistribution = normalised('.')
 
-  println("Rubbish name generator")
-  for (i <- 0 to 5) {
-    println(generate(chars, normalised).mkString(""))
-  }
+  println("Training the model...")
 
-  val raw = grouped.toArray.sortBy(_._1).map { case (k, v) =>
-    val row = v.seq.sortBy(_._1.last).map(_._2).toArray.map(_.toDouble)
-    row / row.sum
-  }
+  println(s"Initial weights shape: ${W.shape}")
+  println(s"Input data shape: ${xencMall.shape}")
+  println(s"Target data shape: ${yChars.length}")
+  println(s"First 5 target characters: ${yChars.take(5).mkString(", ")}")
 
-  val mat = Matrix.fromRows(raw)
 
-  val probs = for ((s, idx) <- completePairs) yield {
-    val l1 = s.head
-    val l2 = s.last
-    Math.log(normalised(l1).probability(charsIdx((l2))))
-  }
+  val learningRate = 1
+  val steps = 100
+  val weightsTrained = train(W, xencMall, yChars, learningRate, steps)
 
-  def rawVals: Iterator[String] = bookended.column["Pairs"].flatten
 
-  def logLikelihood(strings: Iterator[String]) =
-    strings.foldLeft((0.0, 0.0, 0)) { case ((sum, avg, count), s) =>
-      val l1 = s.head
-      val l2 = s.last
-      val prob = normalised(l1).probability(charsIdx(l2))
-
-      // println(s"$s $prob ${Math.log(prob)} ")
-
-      val logProb = Math.log(prob)
-      val newSum = sum + logProb
-      val newCount = count + 1
-      (newSum, (newSum / newCount), newCount)
-
-    }
-
-  println("-ve likelihood")
-  println(logLikelihood(rawVals))
-
-  println("check likehood of word")
-  val checkWord = "simon"
-  println(s"scheckword : $checkWord " + logLikelihood(".simon.".sliding(2)))
-
-  println(
-    "---- This is the bayesian pure scala bigram model, apparently, it's not great! -----"
-  )
-  println("Change lange to neural network")
-
-  val W = Matrix(Array.fill(27 * 27)(normalDist.sample()), (27, 27))
-
-  val useFirstn = 3
-
-  val xencM = Matrix.fromRowsArray(
-    bookended.take(useFirstn).map(_.xenc).flatMap(identity).toArray
-  )
-
-  val yChars =
-    bookended.take(useFirstn).flatMap(_.yenc).toArray
-
-  // log of the "counts" of the pairs
-  val logits = xencM @@ W
-  val counts = logits.exp
-  val probsArr: Array[Array[Double]] =
-    (for (rowN <- 0 until counts.rows) yield
-      val row = counts.row(rowN)
-      row / row.sum
-    ).toArray
-
-  val probsNN = Matrix.fromRowsArray(probsArr)
-
-  println(yChars.mkString(", "))
-
-  val range = (0 to 5).toArray
-
-  val loss = probsNN(range, yChars).raw.log.mean * -1.0
-
+  println("initial loss")
   println(loss)
-  println(range)
 
-  println(probsNN.shape)
+  saveMatrixToCSV(weightsTrained.value, "weights.csv")
 
-  println(probsNN.row(2).sum)
+  println("training run finished")
 
-  // println(probsNN.printMat)
 
-  // println(loss)
