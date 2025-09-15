@@ -54,6 +54,11 @@
         "lineBreak": ":::"
       },
       "encoding": {
+        "tooltip": [
+          {"field": "first", "type": "nominal", "title": "First Letter"},
+          {"field": "second", "type": "nominal", "title": "Second Letter"},
+          {"field": "value", "type": "quantitative", "title": "Count"}
+        ],
         "x": { "field": "first", "type": "nominal" },
         "y": { "field": "second", "type": "nominal" },
         "text": { "field": "cellLabel", "type": "nominal" }
