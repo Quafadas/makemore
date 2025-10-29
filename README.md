@@ -5,7 +5,7 @@ makemore takes one text file as input, where each line is assumed to be one trai
 
 This is not meant to be too heavyweight library with a billion switches and knobs. It is one hackable file, and is mostly intended for educational purposes. [PyTorch](https://pytorch.org) is the only requirement.
 
-Current implementation follows a few key papers:
+urrent implementation follows a few key papers:
 
 - Bigram (one character predicts the next one with a lookup table of counts)
 - MLP, following [Bengio et al. 2003](https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf)
@@ -28,54 +28,3 @@ sophia
 charlotte
 ...
 ```
-
-Let's point the script at it:
-
-```bash
-$ python makemore.py -i names.txt -o names
-```
-
-Training progress and logs and model will all be saved to the working directory `names`. The default model is a super tiny 200K param transformer; Many more training configurations are available - see the argparse and read the code. Training does not require any special hardware, it runs on my Macbook Air and will run on anything else, but if you have a GPU then training will fly faster. As training progresses the script will print some samples throughout. However, if you'd like to sample manually, you can use the `--sample-only` flag, e.g. in a separate terminal do:
-
-```bash
-$ python makemore.py -i names.txt -o names --sample-only
-```
-
-This will load the best model so far and print more samples on demand. Here are some unique baby names that get eventually generated from current default settings (test logprob of ~1.92, though much lower logprobs are achievable with some hyperparameter tuning):
-
-```
-dontell
-khylum
-camatena
-aeriline
-najlah
-sherrith
-ryel
-irmi
-taislee
-mortaz
-akarli
-maxfelynn
-biolett
-zendy
-laisa
-halliliana
-goralynn
-brodynn
-romima
-chiyomin
-loghlyn
-melichae
-mahmed
-irot
-helicha
-besdy
-ebokun
-lucianno
-```
-
-Have fun!
-
-### License
-
-MIT

@@ -30,7 +30,8 @@ import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
     b <- chars
   } yield s"$a$b"
 
-  val data = CSV.resource("names.txt")
+//https://github.com/VirtusLab/scala-cli/issues/3907
+  val data = CSV.absolutePath("/Users/simon/Code/makemore/data/names.txt")
 
 
 /** Bookended : adds "."to either end of the string Pairs : extracts the
@@ -63,9 +64,6 @@ import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
   val completePairs = (pairSet ++ missing.map(_ -> 0)).toSeq.map {
     case (k, v) => if (smooth) (k, v + 1) else (k, v)
   }
-  println("plot heatmap")
-  heatmap(completePairs.seq)
-
 
   val grouped = completePairs.groupBy(d => d._1.head)
   val normalised = grouped.mapValues { v =>
@@ -76,6 +74,10 @@ import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
       row.toArray
     )
   }.toMap
+
+  println("plot heatmap")
+  heatmap(completePairs.seq, "Character bigram counts (not probability weighted)")
+  heatmap(normalised, charsMap, i2c, "Character bigram (probability weighted)")
 
   def generator(
       charDist: Map[
@@ -98,12 +100,9 @@ import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
     println(generator(normalised).mkString(""))
   }
 
+  val someNames = Seq("simon", "isolde", "arlo", "axel", "zqzvzcvs")
 
-  checkWord("simon", normalised, charsMap)
-  checkWord("isolde", normalised, charsMap)
-  checkWord("arlo", normalised, charsMap)
-  checkWord("axel", normalised, charsMap)
-  checkWord("zqzvzcvs", normalised, charsMap)
+  checkWords(someNames, normalised, charsMap).ptbln
 
 
   // // Calculate basic statistics
