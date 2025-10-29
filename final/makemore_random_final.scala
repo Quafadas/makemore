@@ -24,7 +24,7 @@ import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
 
 
 
-  val normalised: Map[Char, EnumeratedIntegerDistribution] = charsMap.mapValues { v =>
+  val normalised: Map[Char, EnumeratedIntegerDistribution] = charsMap.mapValues { _ =>
     // A "flat" prior - every character equally likely
     new EnumeratedIntegerDistribution(
       charsIndex.toArray,
@@ -58,7 +58,7 @@ import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
   }
 
 
-  val someNames = Seq("simon", "isolde", "arlo", "axel", "rrb", "zzzzzzzzz", "christoph")
+  val someNames = Seq("simon", "isolde", "arlo", "axel", "zzz", "zzzzzzzzz", "christoph")
 
   checkWords(someNames, normalised, charsMap).ptbln
 

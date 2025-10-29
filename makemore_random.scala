@@ -1,13 +1,13 @@
 import io.github.quafadas.table.*
 import viz.PlotTargets.desktopBrowser
 import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
-import scala.io.Source
+
 /**
  * Live sketch:
   1. Generate chars, chars index and a bimap
-  3. val normalisd = [Assume a unifiorm distribution]
-  4. heatmap( [PLOT]
-  5. def generator( [GENERATE NAMES]
+  3. val normalised: Map[Char, EnumeratedIntegerDistribution] =  [find in makemore_neural_final.scala]
+  4. heatmap( [find in makemore_neural_final.scala]
+  5. def generator = [find in makemore_neural_final.scala]
   6. println("Rubbish name generator") [Generate names]
   7. val someNames = Seq(...) [NAMES TO CHECK]
   8. checkWords(someNames, normalised, charsMap).ptbln
