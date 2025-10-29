@@ -43,7 +43,7 @@ def loadMatrixFromCSV(filePath: String)(using
   Matrix.fromRowsArray(data)
 
 
-@main def makemore_neural: Unit =
+@main def makemore_neural_final: Unit =
 
   val generateWeights = true
   import LiteShow.given
