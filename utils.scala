@@ -1,5 +1,9 @@
 import io.github.quafadas.table.*
 import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
+import vecxt.all.*
+import scala.reflect.ClassTag
+
+
 /**
  * Calculates the average log-likelihood of a string given a character transition model.
  *
@@ -72,3 +76,20 @@ def checkWords(strs : Seq[String], charmap: Map[Char, EnumeratedIntegerDistribut
   for (str <- strs)  yield {
     (word = str) ++ logLikelihood(s".$str.", charmap, charsMap)
   }
+
+
+
+def graphDebug(s: String) =
+  os.write.over(os.Path("/Users/simon/Code/makemore") / "graph.dot", s)
+
+def saveMatrixToCSV(matrix: Matrix[Double], filePath: String): Unit =
+  val lines = for (i <- 0 until matrix.rows) yield matrix.row(i).mkString(",")
+  os.write.over(os.Path(filePath, os.pwd), lines.mkString("\n"))
+
+def loadMatrixFromCSV(filePath: String)(using
+    ClassTag[Double]
+): Matrix[Double] =
+  import vecxt.BoundsCheck.DoBoundsCheck.yes
+  val lines = os.read.lines(os.Path(filePath, os.pwd))
+  val data = lines.map(_.split(",").map(_.toDouble)).toArray
+  Matrix.fromRowsArray(data)

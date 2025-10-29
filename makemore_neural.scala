@@ -2,7 +2,13 @@ import io.github.quafadas.table.*
 import viz.PlotTargets.desktopBrowser
 import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
 import scala.io.Source
-
+import vecxt.BoundsCheck.DoBoundsCheck.yes
+import io.github.quafadas.inspireRAD.DetailShow
+/**
+ * 1. val trainData = bookended.flatMap( [find in makemore_neural_final.scala]
+ *
+ *
+ */
 
 @main def makemore_neural_live: Unit =
   import io.github.quafadas.inspireRAD.LiteShow.given

@@ -20,31 +20,31 @@ import scala.reflect.ClassTag
 import vecxt.all.row
 import cats.syntax.all.toShow
 import cats.Show
-import io.github.quafadas.inspireRAD.DetailShow
-import io.github.quafadas.inspireRAD.LiteShow
+
 import viz.PlotTargets.desktopBrowser
+/**
+ * Converts a character into a one-hot encoded vector.
+ *
+ * Example:
+ *   val charsMap = Map('.' -> 0, 'a' -> 1, 'b' -> 2)
+ *
+ *   onehot('a', charsMap) => Array(0.0, 1.0, 0.0)
+ *
+ *   onehot('b', charsMap) => Array(0.0, 0.0, 1.0)
+ *
+ * @param char the character to encode
+ * @param allChars a map of characters to their indices
+ * @return an array of doubles where all elements are 0.0 except the element at the index
+ *         corresponding to the input character, which is set to 1.0
+ */
 
 def onehot(char: Char, allChars: collection.Map[Char, Int]): Array[Double] =
   val idx2 = allChars(char)
   Array.fill(allChars.size)(0.0).tap(_(idx2) = 1.0)
 
-def graphDebug(s: String) =
-  os.write.over(os.Path("/Users/simon/Code/makemore") / "graph.dot", s)
-
-def saveMatrixToCSV(matrix: Matrix[Double], filePath: String): Unit =
-  val lines = for (i <- 0 until matrix.rows) yield matrix.row(i).mkString(",")
-  os.write.over(os.Path(filePath, os.pwd), lines.mkString("\n"))
-
-def loadMatrixFromCSV(filePath: String)(using
-    ClassTag[Double]
-): Matrix[Double] =
-  val lines = os.read.lines(os.Path(filePath, os.pwd))
-  val data = lines.map(_.split(",").map(_.toDouble)).toArray
-  Matrix.fromRowsArray(data)
-
-
 @main def makemore_neural_final: Unit =
-
+  import io.github.quafadas.inspireRAD.DetailShow
+  import io.github.quafadas.inspireRAD.LiteShow
   val generateWeights = true
   import LiteShow.given
 
@@ -127,11 +127,11 @@ def loadMatrixFromCSV(filePath: String)(using
       tg: TejVGraph[Double],
       fi: Fractional[Double]
   ): TejV[Scalar, Double] =
-    val logits = data @@ weights
-    val probsNN = logits.softmaxRows
-    val range: Array[(Int, Int)] = (0 until targets.length).toArray.zip(targets)
-    val selected = probsNN.arrange(range)
-    val theloss = (selected + 1e-8d.tej).log.mean * -1.0.tej
+    val logits = data @@ weights // multiply input data by weight matrix to get raw prediction scores
+    val probsNN = logits.softmaxRows // convert logits to probabilities using softmax normalization
+    val range: Array[(Int, Int)] = (0 until targets.length).toArray.zip(targets) // pair each sample index with its target class
+    val selected = probsNN.arrange(range) // extract the probability of the correct target class for each sample
+    val theloss = (selected + 1e-8d.tej).log.mean * -1.0.tej // compute average negative log-probability (cross-entropy loss)
     theloss
 
   @annotation.tailrec
@@ -238,3 +238,4 @@ def loadMatrixFromCSV(filePath: String)(using
   // saveMatrixToCSV(weightsTrained.value, "weights.csv")
 
   println("training run finished")
+  Thread.sleep(1000)
