@@ -5,6 +5,11 @@ import scala.io.Source
 
 
 @main def makemore_neural_live: Unit =
+  import io.github.quafadas.inspireRAD.LiteShow.given
+
+  val generateWeights = true
+  val normalDist = new org.apache.commons.math3.distribution.NormalDistribution()
+  val smooth = true
 
   val chars = '.' +: ('a' to 'z').toVector
   val charsIndex = (0 to 26).toVector
