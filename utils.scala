@@ -3,6 +3,8 @@ import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
 import vecxt.all.*
 import scala.reflect.ClassTag
 
+extension (m: Matrix[Double])
+  inline def pt = println(m.printMat)
 
 /**
  * Calculates the average log-likelihood of a string given a character transition model.

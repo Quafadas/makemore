@@ -42,6 +42,7 @@ def onehot(char: Char, allChars: collection.Map[Char, Int]): Array[Double] =
   val idx2 = allChars(char)
   Array.fill(allChars.size)(0.0).tap(_(idx2) = 1.0)
 
+// scala-cli run . --main-class makemore_neural_final
 @main def makemore_neural_final: Unit =
   import io.github.quafadas.inspireRAD.DetailShow
   import io.github.quafadas.inspireRAD.LiteShow
@@ -204,7 +205,7 @@ def onehot(char: Char, allChars: collection.Map[Char, Int]): Array[Double] =
         updated -= grad.weights
       }
 
-      if (steps - 1) % 10 == 0 then
+      if (steps - 1) % 5 == 0 then
         given graph: TejVGraph[Double] = TejVGraph[Double]()
         val loss = calcLossF(updated.tej, data.tej, targets)
         println(s"Step $steps, loss: ${loss.value.scalar}, rate: $learningRate")
