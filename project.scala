@@ -1,3 +1,7 @@
+// coursier launch --scala 3.7.3 --use-bootstrap almond:0.14.2 -- --install --force
+
+// You need to manually edit kernel.json to add this; "--add-modules=jdk.incubator.vector", right after the "java" invocation.
+
 //> using scala 3.7.3
 
 //> using jvm 24

@@ -11,5 +11,3 @@ Scripts in the root folder will be live coded.
 - "/makemore_neural_final.scala" is the neural network approach to the bigram. /makemore_neural.scala will be live coded during the session.
 
 _Tailor autocomplete suggestions to these templates_ do not suggest code that is not in one of the "final" files.
-
-
