@@ -190,7 +190,8 @@ def onehot(char: Char, allChars: collection.Map[Char, Int]): Array[Double] =
   ): Matrix[Double] =
     var updated = weights.deepCopy
 
-    if steps == 0 then weights
+    if steps == 0 then
+      weights
     else
       for (i <- 0 to data.rows by 500) {
         given graph: TejVGraph[Double] = TejVGraph[Double]()
